@@ -1,0 +1,1546 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Trending News Analysis</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <style>
+            * { box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+                margin: 0;
+                padding: 16px;
+                background: #fafafa;
+                color: #333;
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+            }
+
+            .header {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                color: white;
+                padding: 32px 24px;
+                text-align: center;
+                position: relative;
+            }
+
+            .save-buttons {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                display: flex;
+                gap: 8px;
+            }
+
+            .save-btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+                white-space: nowrap;
+            }
+
+            .save-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                border-color: rgba(255, 255, 255, 0.5);
+                transform: translateY(-1px);
+            }
+
+            .save-btn:active {
+                transform: translateY(0);
+            }
+
+            .save-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+            .header-title {
+                font-size: 22px;
+                font-weight: 700;
+                margin: 0 0 20px 0;
+            }
+
+            .header-info {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                font-size: 14px;
+                opacity: 0.95;
+            }
+
+            .info-item {
+                text-align: center;
+            }
+
+            .info-label {
+                display: block;
+                font-size: 12px;
+                opacity: 0.8;
+                margin-bottom: 4px;
+            }
+
+            .info-value {
+                font-weight: 600;
+                font-size: 16px;
+            }
+
+            .content {
+                padding: 24px;
+            }
+
+            .word-group {
+                margin-bottom: 40px;
+            }
+
+            .word-group:first-child {
+                margin-top: 0;
+            }
+
+            .word-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .word-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .word-name {
+                font-size: 17px;
+                font-weight: 600;
+                color: #1a1a1a;
+            }
+
+            .word-count {
+                color: #666;
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            .word-count.hot { color: #dc2626; font-weight: 600; }
+            .word-count.warm { color: #ea580c; font-weight: 600; }
+
+            .word-index {
+                color: #999;
+                font-size: 12px;
+            }
+
+            .news-item {
+                margin-bottom: 20px;
+                padding: 16px 0;
+                border-bottom: 1px solid #f5f5f5;
+                position: relative;
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+
+            .news-item:last-child {
+                border-bottom: none;
+            }
+
+            .news-item.new::after {
+                content: "NEW";
+                position: absolute;
+                top: 12px;
+                right: 0;
+                background: #fbbf24;
+                color: #92400e;
+                font-size: 9px;
+                font-weight: 700;
+                padding: 3px 6px;
+                border-radius: 4px;
+                letter-spacing: 0.5px;
+            }
+
+            .news-number {
+                color: #999;
+                font-size: 13px;
+                font-weight: 600;
+                min-width: 20px;
+                text-align: center;
+                flex-shrink: 0;
+                background: #f8f9fa;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                align-self: flex-start;
+                margin-top: 8px;
+            }
+
+            .news-content {
+                flex: 1;
+                min-width: 0;
+                padding-right: 40px;
+            }
+
+            .news-item.new .news-content {
+                padding-right: 50px;
+            }
+
+            .news-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+                flex-wrap: wrap;
+            }
+
+            .source-name {
+                color: #666;
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .rank-num {
+                color: #fff;
+                background: #6b7280;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 18px;
+                text-align: center;
+                rank-num: center;
+            }
+
+            .rank-num.top { background: #dc2626; }
+            .rank-num.high { background: #ea580c; }
+
+            .time-info {
+                color: #999;
+                font-size: 11px;
+            }
+
+            .count-info {
+                color: #059669;
+                font-size: 11px;
+                font-weight: 500;
+            }
+
+            .news-title {
+                font-size: 15px;
+                line-height: 1.4;
+                color: #1a1a1a;
+                margin: 0;
+            }
+
+            .news-link {
+                color: #2563eb;
+                text-decoration: none;
+            }
+
+            .news-link:hover {
+                text-decoration: underline;
+            }
+
+            .news-link:visited {
+                color: #7c3aed;
+            }
+
+            .new-section {
+                margin-top: 40px;
+                padding-top: 24px;
+                border-top: 2px solid #f0f0f0;
+            }
+
+            .new-section-title {
+                color: #1a1a1a;
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0 0 20px 0;
+            }
+
+            .new-source-group {
+                margin-bottom: 24px;
+            }
+
+            .new-source-title {
+                color: #666;
+                font-size: 13px;
+                font-weight: 500;
+                margin: 0 0 12px 0;
+                padding-bottom: 6px;
+                border-bottom: 1px solid #f5f5f5;
+            }
+
+            .new-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 0;
+                border-bottom: 1px solid #f9f9f9;
+            }
+
+            .new-item:last-child {
+                border-bottom: none;
+            }
+
+            .new-item-number {
+                color: #999;
+                font-size: 12px;
+                font-weight: 600;
+                min-width: 18px;
+                text-align: center;
+                flex-shrink: 0;
+                background: #f8f9fa;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .new-item-rank {
+                color: #fff;
+                background: #6b7280;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 3px 6px;
+                border-radius: 8px;
+                min-width: 20px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+            .new-item-rank.top { background: #dc2626; }
+            .new-item-rank.high { background: #ea580c; }
+
+            .new-item-content {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .new-item-title {
+                font-size: 14px;
+                line-height: 1.4;
+                color: #1a1a1a;
+                margin: 0;
+            }
+
+            .error-section {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 24px;
+            }
+
+            .error-title {
+                color: #dc2626;
+                font-size: 14px;
+                font-weight: 600;
+                margin: 0 0 8px 0;
+            }
+
+            .error-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .error-item {
+                color: #991b1b;
+                font-size: 13px;
+                padding: 2px 0;
+                font-family: 'SF Mono', Consolas, monospace;
+            }
+
+            .footer {
+                margin-top: 32px;
+                padding: 20px 24px;
+                background: #f8f9fa;
+                border-top: 1px solid #e5e7eb;
+                text-align: center;
+            }
+
+            .footer-content {
+                font-size: 13px;
+                color: #6b7280;
+                line-height: 1.6;
+            }
+
+            .footer-link {
+                color: #4f46e5;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.2s ease;
+            }
+
+            .footer-link:hover {
+                color: #7c3aed;
+                text-decoration: underline;
+            }
+
+            .project-name {
+                font-weight: 600;
+                color: #374151;
+            }
+
+            @media (max-width: 480px) {
+                body { padding: 12px; }
+                .header { padding: 24px 20px; }
+                .content { padding: 20px; }
+                .footer { padding: 16px 20px; }
+                .header-info { grid-template-columns: 1fr; gap: 12px; }
+                .news-header { gap: 6px; }
+                .news-content { padding-right: 45px; }
+                .news-item { gap: 8px; }
+                .new-item { gap: 8px; }
+                .news-number { width: 20px; height: 20px; font-size: 12px; }
+                .save-buttons {
+                    position: static;
+                    margin-bottom: 16px;
+                    display: flex;
+                    gap: 8px;
+                    justify-content: center;
+                    flex-direction: column;
+                    width: 100%;
+                }
+                .save-btn {
+                    width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="save-buttons">
+                    <button class="save-btn" onclick="saveAsImage()">Save as Image</button>
+                    <button class="save-btn" onclick="saveAsMultipleImages()">Save Segments</button>
+                </div>
+                <div class="header-title">Trending News Analysis</div>
+                <div class="header-info">
+                    <div class="info-item">
+                        <span class="info-label">Report Type</span>
+                        <span class="info-value">Daily Summary</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total News</span>
+                        <span class="info-value">181 items</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Hot News</span>
+                        <span class="info-value">70 items</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Generated At</span>
+                        <span class="info-value">12-21 02:11</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Technology &amp; AI AI Artificial Intelligence Machine Learning Blockchain Cryptocurrency Bitcoin Ethereum</div>
+                            <div class="word-count hot">32 items</div>
+                        </div>
+                        <div class="word-index">1/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num top">1</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/sports/football/top-stories/kolkata-chaos-lionel-messis-event-derailed-after-a-very-influential-person-reached-stadium-what-organiser-tells-sit/articleshow/126094706.cms" target="_blank" class="news-link">Kolkata chaos: Messi event derailed after &#x27;influential person&#x27; reached stadium? What organiser said</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">2</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num top">2</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/kerala-hc-quashes-key-stages-in-sabarimala-greenfield-airport-land-acquisition-101766255717137.html" target="_blank" class="news-link">Kerala HC quashes key stages in Sabarimala greenfield airport land acquisition</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">3</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num top">2-3</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us-streamers/captain-puffy-reveals-pokimane-spoke-to-her-about-ellum-allegations-before-viral-tiktok-backlash-began/articleshow/126097167.cms" target="_blank" class="news-link">Captain Puffy reveals Pokimane spoke to her about Ellum allegations before viral TikTok backlash began</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">4</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num top">3</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/teacher-found-dead-at-ex-cisf-officers-house-family-allege-murder-over-affair-101766253813712.html" target="_blank" class="news-link">Teacher found dead at ex CISF officer&#x27;s house, family allege murder over &#x27;affair&#x27;</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">5</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num top">3</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/story/does-india-need-more-than-one-s-jaishankar-hanuman-parallel-foreign-policy-pune-literature-festival-2839201-2025-12-20?utm_source=rss" target="_blank" class="news-link">Does India need more Jaishankar? Foreign Minister gives Lord Hanuman analogy</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">6</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num high">4-7</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/city/guwahati/rajdhani-mows-down-7-jumbos-in-assams-hojai-4-of-them-calves/articleshow/126097363.cms" target="_blank" class="news-link">Assam: Rajdhani mows down 7 jumbos in Hojai; 4 of them calves</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">7</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num high">5-8</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/hijab-row-doctor-whose-naqab-was-pulled-by-nitish-kumar-fails-to-join-duty-officials-report-no-contact/articleshow/126095280.cms" target="_blank" class="news-link">Hijab row: Doctor whose naqab was pulled by Nitish Kumar fails to join duty</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">8</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">8-11</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/no-alliance-with-sena-ubt-for-mumbai-civic-polls-cong/articleshow/126097548.cms" target="_blank" class="news-link">No alliance with Sena UBT for Mumbai civic polls: Congress</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">9</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">9</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/cities/mumbai/story/bjp-mla-parag-shah-slaps-autorickshaw-driver-mumbai-ghatkopar-opposition-criticism-2839198-2025-12-20?utm_source=rss" target="_blank" class="news-link">Video: BJP MLA slaps auto-rickshaw driver for driving in wrong direction in Mumbai</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">10</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">11-13</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/global-pecking-order-has-changed-jaishankar-jibes-western-economic-model-points-to-political-stagnation/articleshow/126092032.cms" target="_blank" class="news-link">‘Global pecking order has changed’: Jaishankar jibes Western economic model</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">11</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">12</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/aibased-alerts-prevent-elephants-deaths-in-tn-s-madukkarai-centre-launched-in-gudalur-101766242475375.html" target="_blank" class="news-link">AI-based alerts prevent elephants&#x27;&#x27; deaths in TN&#x27;&#x27;s Madukkarai, centre launched in Gudalur</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">12</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">14</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/aqi-nears-400-mark-in-delhi-as-city-braces-for-severe-air-quality-despite-curbs-101766234076055.html" target="_blank" class="news-link">AQI nears 400-mark in Delhi as city braces for ‘severe’ air quality despite curbs</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">13</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">14</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/technology/tech-news/meta-ceo-mark-zuckerbergs-highest-paid-employee-is-reportedly-unhappy-with-his-boss-feels-he-/articleshow/126064468.cms" target="_blank" class="news-link">Zuckerberg&#x27;s &#x27;highest-paid&#x27; employee is reportedly unhappy with his Boss - What he said</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">14</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - India</span><span class="rank-num ">16</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/magazine/nation/story/20250728-west-bengal-assembly-elections-2026-its-raining-identity-politics-2757632-2025-07-18?utm_source=rss" target="_blank" class="news-link">West Bengal Assembly elections 2026 | It&#x27;s raining identity politics</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">15</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">18</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/story/sir-aimed-at-blocking-infiltrators-deshdrohis-defending-them-pm-modi-jabs-congress-2839119-2025-12-20?utm_source=rss" target="_blank" class="news-link">SIR aimed at blocking infiltrators, deshdrohis defending them: PM jabs Congress</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">16</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">20</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/science/story/blue-origin-ns37-first-wheelchair-user-michaela-benthaus-space-travel-hans-koenigsmann-2839140-2025-12-20?utm_source=rss" target="_blank" class="news-link">Watch: Blue Origin launches first wheelchair user to space</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">17</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">22</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/story/air-india-express-pilot-assault-passenger-spicejet-flight-suspended-delhi-airport-2839014-2025-12-20?utm_source=rss" target="_blank" class="news-link">&#x27;Be back after thrashing him&#x27;: Flier recounts ordeal with Air India Express pilot</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">18</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">25-27</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/does-india-need-more-than-one-jaishankar-eam-replies-with-lord-hanuman-parallel-watch/articleshow/126093597.cms" target="_blank" class="news-link">Does India need &#x27;more than one Jaishankar&#x27;? EAM replies with Lord Hanuman parallel - watch</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">19</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">26-28</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/bmc-polls-congress-decides-to-go-solo-uddhavraj-bonhomie-strains-mva/articleshow/126093098.cms" target="_blank" class="news-link">BMC polls: Congress decides to go solo; Uddhav–Raj bonhomie strains MVA</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">20</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">29</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/cities/delhi/story/delhi-bad-weather-update-air-quality-severe-aqi-pollution-action-illegal-construction-western-disturbance-2839220-2025-12-20?utm_source=rss" target="_blank" class="news-link">Delhi minister warns of bad weather, worsening air quality as AQI nears severe</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">21</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">33-35</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/city/jaipur/german-couple-4-others-detainedfor-conversions-in-sriganganagar/articleshow/126083861.cms" target="_blank" class="news-link">German couple detained for &#x27;illegal religious conversions&#x27; near India-Pakistan border</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">22</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">35</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/sports/hockey/story/pakistan-hockey-players-financial-crisis-unpaid-dues-training-careers-2839196-2025-12-20?utm_source=rss" target="_blank" class="news-link">Pakistan hockey in turmoil as players await due payment from authorities: Report</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">23</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">36</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/clean-air-clear-skies-draw-tourists-to-himachal-hills-as-aqi-worsens-in-delhi-ncr-and-neighbouring-states-101766228018164.html" target="_blank" class="news-link">Clean air, clear skies draw tourists to Himachal hills as AQI worsens in Delhi-NCR and neighbouring states</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">24</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">38</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/anchor/rajdeep-sardesai?utm_source=rss" target="_blank" class="news-link">Rajdeep Sardesai</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">25</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">39</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/delhis-igi-airport-issues-fresh-advisory-as-129-flights-cancelled-due-to-dense-fog-101766222076544.html" target="_blank" class="news-link">Delhi&#x27;s IGI airport issues fresh advisory as 129 flights cancelled due to dense fog</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">26</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">39-41</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/sports/cricket/icc-mens-t20-world-cup/i-know-what-to-do-after-shubman-gills-omission-from-t20-world-cup-squad-captain-suryakumar-yadav-speaks-up-on-his-own-form/articleshow/126092034.cms" target="_blank" class="news-link">T20 World Cup squad: Captain Suryakumar speaks up on his form; remarks after Gill&#x27;s omission</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">27</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">41</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/global-order-established-80-years-ago-clearly-unravelling-jaishankar-101766223782283.html" target="_blank" class="news-link">‘Global order established 80 years ago clearly unravelling’: Jaishankar</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">28</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">43-45</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/city/ranchi/jharkhand-horror-drunk-army-jawan-raped-woman-inside-train-coach-arrested/articleshow/126091017.cms" target="_blank" class="news-link">Jharkhand horror: Drunk army jawan &#x27;rapes&#x27; woman inside train; accused arrested</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">29</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">44</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/shashi-tharoor-slams-mob-rule-after-hindu-mans-lynching-in-bangladesh-101766220703465.html" target="_blank" class="news-link">‘Mob rule should not prevail’: Shashi Tharoor on Hindu man&#x27;s lynching in Bangladesh</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">30</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">46</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/both-of-us-will-go-what-shivakumar-said-on-delhi-visit-to-meet-party-high-command-101766221267436.html" target="_blank" class="news-link">‘Both of us will go’: What Shivakumar said on Delhi visit to meet party high command</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">31</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">50</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/video/unpolitics-sadhguru-jaggi-vasudev-isha-foundation-running-cult-claims-science-spirituality-amit-shah-2839217-2025-12-20?utm_source=rss" target="_blank" class="news-link">Sadhguru on running cult claims, science, spirituality, meeting with Amit Shah</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">32</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">46</span><span class="time-info">01:27~01:32</span><span class="count-info">2 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/augusta-westland-deal-christian-michel-released-in-money-laundering-case-remains-in-cbi-custody/articleshow/126091938.cms" target="_blank" class="news-link">Augusta Westland deal: Christian Michel released in PMLA case; remains in CBI custody</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Indian Topics India Indian Bollywood Cricket IPL ISRO Space</div>
+                            <div class="word-count hot">20 items</div>
+                        </div>
+                        <div class="word-index">2/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num top">1</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/how-long-can-indian-visitors-stay-in-us-embassy-has-an-answer-101766258208146.html" target="_blank" class="news-link">How long can Indian visitors stay in US? Embassy has an answer</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">2</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num top">1</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/world/story/osman-hadi-funeral-muhammad-yunus-tribute-bangladesh-unrest-siliguri-protest-2839193-2025-12-20?utm_source=rss" target="_blank" class="news-link">Osman Hadi will live in our hearts: Yunus vows to follow anti-India leader&#x27;s ideals</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">3</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num top">1-2</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/etimes/trending/50-for-100-how-this-indian-origin-executive-negotiated-with-a-knife-wielding-mugger-on-his-first-day-in-us/articleshow/126097163.cms" target="_blank" class="news-link">$50 for $100? How this Indian-origin executive negotiated with a knife-wielding mugger on his first day in US</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">4</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num high">4</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/science/story/skyroot-aerospace-vikram-i-space-launch-isro-pawan-chandana-naga-bharath-daka-2838757-2025-12-20?utm_source=rss" target="_blank" class="news-link">This private factory wants to make one new space rocket every month</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">5</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num high">4-5</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/rest-of-world/gave-money-because-i-loved-indian-national-gagandeep-pejatta-alleges-1-million-exploitation-by-canadian-family-real-estate-broker/articleshow/126096300.cms" target="_blank" class="news-link">‘Gave money because I loved…’: Indian national Gagandeep Pejatta with &#x27;intellectual disability&#x27; alleges $1 million exploitation by Canadian family, real estate broker</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">6</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">6</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/video/an-insiders-account-of-the-babri-demolition-arun-came-up-with-that-title-nations-shame-frvd-2839195-2025-12-20?utm_source=rss" target="_blank" class="news-link">India Today from 1985-95: Insight at Bofors, Babri demolition, India&#x27;s upheavals</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">7</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">6-7</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/rest-of-world/how-canadas-indian-act-tax-rules-are-confusing-shoppers-indigenous-people-should-be-proud-to-get-tax-exemption/articleshow/126095589.cms" target="_blank" class="news-link">How Canada’s Indian Act tax rules are confusing shoppers: &#x27;Indigenous people should be proud to get tax exemption&#x27;</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">8</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">7-9</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/sports/cricket/icc-mens-t20-world-cup/t20-world-cup-squad-very-happy-ishan-kishan-reacts-on-india-recall-as-shubman-gill-misses-out/articleshow/126092935.cms" target="_blank" class="news-link">T20 WC squad: &#x27;Very happy&#x27; Ishan Kishan reacts to India recall as Gill misses out</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">9</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">11-12</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/rest-of-world/this-is-new-zealand-not-india-christian-group-performing-haka-confronts-sikh-parade-in-auckland-video/articleshow/126094759.cms" target="_blank" class="news-link">&#x27;This is New Zealand, not India&#x27;: Christian group performing haka confronts Sikh parade in Auckland — video</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">10</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">15</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/confluence-of-modernity-spirituality-is-greatest-strength-of-indian-civilisation-prez-murmu-101766240253797.html" target="_blank" class="news-link">Confluence of modernity, spirituality is greatest strength of Indian civilisation: Prez Murmu</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">11</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">16-17</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us/indian-running-cover-for-a-jew-internet-reacts-to-vivek-ramaswamy-defending-democratic-rival-amy-acton/articleshow/126094142.cms" target="_blank" class="news-link">‘Indian running cover for a Jew’: Internet reacts to Vivek Ramaswamy defending Democratic rival Amy Acton</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">12</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">19-20</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us/no-place-in-gop-vivek-ramaswamy-rejects-heritage-american-label-slams-anti-indian-hate/articleshow/126089639.cms" target="_blank" class="news-link">‘No place in GOP’: Vivek Ramaswamy rejects ‘heritage American’ label; slams anti-Indian hate</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">13</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">22</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/isro-successfully-completes-key-parachute-deceleration-tests-for-gaganyaan-mission-video-101766233667645.html" target="_blank" class="news-link">ISRO successfully completes key parachute deceleration tests for Gaganyaan mission | Video</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">14</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">25</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/indian-cyber-agency-flags-whatsapp-hijack-101766233169407.html" target="_blank" class="news-link">Indian cyber agency flags WhatsApp &#x27;hijack&#x27;</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">15</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">27</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/customs-clearing-agents-meet-to-review-safety-of-indian-truck-drivers-at-benapole-101766232620195.html" target="_blank" class="news-link">Customs clearing agents meet to review safety of Indian truck drivers at Benapole</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">16</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">28-30</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/sports/cricket/icc-mens-t20-world-cup/india-t20-world-cup-squad-why-shubman-gill-was-dropped-at-the-last-moment/articleshow/126093312.cms" target="_blank" class="news-link">India T20 World Cup squad: Why Shubman Gill was dropped - at the last moment</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">17</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">29-31</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/social-media-ban-for-minors-can-india-mirror-australias-model-promise-pitfalls-and-practicality/articleshow/126087549.cms" target="_blank" class="news-link">Social media ban: Can India mirror Aus model? Promise, pitfalls, and practicality</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">18</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">37-39</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/meets-anti-india-forces-abroad-bjp-charges-rahul-gandhi-over-germany-visit-alleges-lop-aided-by-george-soros/articleshow/126093018.cms" target="_blank" class="news-link">&#x27;Meets anti-India forces&#x27;: BJP slams Rahul over Germany tour</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">19</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">44</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/programmes/india-first?utm_source=rss" target="_blank" class="news-link">India First</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">20</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">48</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/india-distributes-dry-ration-to-over-80-cyclone-ditwah-affected-families-in-sri-lanka-101766220521627.html" target="_blank" class="news-link">India distributes dry ration to over 80 Cyclone Ditwah affected families in Sri Lanka</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Indian Personalities Modi Narendra Modi Ambani Mukesh Ambani Ratan Tata Narayana Murthy</div>
+                            <div class="word-count hot">11 items</div>
+                        </div>
+                        <div class="word-index">3/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num top">2</span><span class="time-info">02:08</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/congress-nearly-joined-conspiracy-to-make-assam-part-of-east-pakistan-pm-modi/articleshow/126098067.cms" target="_blank" class="news-link">Congress nearly joined conspiracy to make Assam part of East Pakistan: PM Modi</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">2</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - India</span><span class="rank-num ">9</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/magazine/nation/story/20250929-narendra-modi-75-man-of-the-moment-2789963-2025-09-19?utm_source=rss" target="_blank" class="news-link">Narendra Modi @ 75 | Man of the moment</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">3</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">India Today - Home</span><span class="rank-num ">11</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.indiatoday.in/india/story/pm-inaugurates-new-terminal-building-of-lokapriya-gopinath-bardoloi-international-airport-in-guwahati-2839037-2025-12-20?utm_source=rss" target="_blank" class="news-link">PM Modi inaugurates India&#x27;s first nature-themed airport terminal in Guwahati</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">4</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">16-21</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/modi-govt-is-correcting-congresss-mistakes-pm-in-guwahati-hails-development-of-assam/articleshow/126092657.cms" target="_blank" class="news-link">&#x27;Deshdrohis trying to protect infiltrators&#x27;: PM Modi defends SIR at Assam rally</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">5</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">24</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/correcting-congress-s-mistake-of-ignoring-northeast-for-decades-pm-modi-101766233750106.html" target="_blank" class="news-link">Correcting Congress’s mistake of ignoring northeast for decades: PM Modi</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">6</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">26</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/sonia-gandhi-accuses-modi-govt-of-bulldozing-mgnrega-ready-to-fight-black-law-vb-g-ram-g-bill-101766229213954.html" target="_blank" class="news-link">Sonia Gandhi accuses Modi govt of ‘bulldozing’ MGNREGA: ‘Ready to fight black law’</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">7</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">28</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/sir-to-ensure-infiltrators-are-out-cong-giving-them-protection-pm-modi-in-assams-guwahati-101766231175392.html" target="_blank" class="news-link">&#x27;SIR to ensure infiltrators are out, Cong giving them protection&#x27;: PM Modi in Assam</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">8</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">30-32</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/india/attack-on-poor-sonia-criticizes-pm-modi-over-vb-g-ram-g-bill-slams-renaming-mgnrega/articleshow/126091883.cms" target="_blank" class="news-link">&#x27;Attack on interests of poor&#x27;: Sonia Gandhi slams PM Modi over VB-G RAM G Bill</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">9</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">38</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/need-to-get-rid-of-maha-jungle-raaj-in-bengal-pm-modi-101766228528573.html" target="_blank" class="news-link">Need to get rid of ‘maha jungle raaj’ in Bengal: PM Modi</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">10</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">41-43</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/business/infrastructure/guwahati-airport-gets-new-terminal-pm-modi-to-inaugurate-today-see-stunning-pics/articleshow/126088173.cms" target="_blank" class="news-link">Guwahati airport gets new terminal: PM Modi inaugurates the project - see stunning pics</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">11</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Hindustan Times - India</span><span class="rank-num ">42</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://www.hindustantimes.com/india-news/pm-modi-inaugurates-new-terminal-building-of-guwahati-airport-largest-in-northeast-101766224896633.html" target="_blank" class="news-link">PM Modi inaugurates new terminal building of Guwahati airport, largest in Northeast</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Education &amp; Career IIT Engineering MBA Jobs Career</div>
+                            <div class="word-count ">3 items</div>
+                        </div>
+                        <div class="word-index">4/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">13-14</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/pakistan/no-embargo-pakistan-refutes-visit-restrictions-on-imran-khans-sons-promises-visa-approval/articleshow/126094598.cms" target="_blank" class="news-link">&#x27;No embargo&#x27;: Pakistan refutes visit restrictions on Imran Khan&#x27;s sons; promises visa approval</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">2</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">18</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/sports/international-sports/anthony-joshua-net-worth-in-2025-inside-his-boxing-earnings-career-and-payday-before-jake-paul-fight/articleshow/126087700.cms" target="_blank" class="news-link">Anthony Joshua net worth 2025: Boxing earnings, career and Jake Paul fight payday</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">3</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">21-23</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/pakistan/no-embargo-pakistan-refutes-visit-restrictions-on-imran-khans-sons-promises-visa-approval/articleshow/126094598.cms" target="_blank" class="news-link">&#x27;No embargo&#x27;: Pak refutes visit restrictions on Imran&#x27;s sons; promises visa approval</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Global Topics Technology Tech Startup Innovation Science</div>
+                            <div class="word-count ">2 items</div>
+                        </div>
+                        <div class="word-index">5/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num top">1</span><span class="time-info">02:08</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us/in-a-first-elon-musks-net-worth-tops-700-billion-heres-how-the-tech-titan-did-it/articleshow/126097981.cms" target="_blank" class="news-link">In a first, Elon Musk’s net worth tops $700 billion – here’s how the tech titan did it</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">2</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num top">3</span><span class="time-info">02:08</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us/in-a-first-elon-musks-net-worth-tops-700-billion-heres-how-the-tech-titan-did-it/articleshow/126097981.cms" target="_blank" class="news-link">In a first, Elon Musk’s net worth tops $700 billion – here’s how the tech titan did it</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Indian Tech &amp; Startups Flipkart Paytm Zomato Swiggy Ola PhonePe CRED Razorpay Zerodha</div>
+                            <div class="word-count ">1 items</div>
+                        </div>
+                        <div class="word-index">6/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - India News</span><span class="rank-num ">9-10</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/world/us/how-russiagate-ruined-cambridge-scholar-svetlana-lokhovas-life/articleshow/126095252.cms" target="_blank" class="news-link">How Russiagate ruined Cambridge scholar Svetlana Lokhova’s life</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="word-group">
+                    <div class="word-header">
+                        <div class="word-info">
+                            <div class="word-name"># Global Tech (relevant to India) Google Microsoft Apple Amazon Meta Facebook OpenAI ChatGPT Claude Gemini</div>
+                            <div class="word-count ">1 items</div>
+                        </div>
+                        <div class="word-index">7/7</div>
+                    </div>
+                    <div class="news-item ">
+                        <div class="news-number">1</div>
+                        <div class="news-content">
+                            <div class="news-header">
+                                <span class="source-name">Times of India - Top Stories</span><span class="rank-num ">10</span><span class="time-info">01:27~02:08</span><span class="count-info">3 hits</span>
+                            </div>
+                            <div class="news-title"><a href="https://timesofindia.indiatimes.com/technology/tech-news/google-co-founder-larry-pages-prediction-25-years-ago-is-now-companys-reality-what-he-said-about-ai-in-the-year-2000/articleshow/126074427.cms" target="_blank" class="news-link">Google founder’s prediction 25-yrs ago is now company’s reality: What he said about AI</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="footer-content">
+                    Generated by <span class="project-name">TrendRadar</span> ·
+                    <a href="https://github.com/sansan0/TrendRadar" target="_blank" class="footer-link">
+                        GitHub Project
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            async function saveAsImage() {
+                const button = event.target;
+                const originalText = button.textContent;
+
+                try {
+                    button.textContent = 'Generating...';
+                    button.disabled = true;
+                    window.scrollTo(0, 0);
+
+                    // Wait for page to stabilize
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    // Hide buttons before screenshot
+                    const buttons = document.querySelector('.save-buttons');
+                    buttons.style.visibility = 'hidden';
+
+                    // Wait again to ensure buttons are completely hidden
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    const container = document.querySelector('.container');
+
+                    const canvas = await html2canvas(container, {
+                        backgroundColor: '#ffffff',
+                        scale: 1.5,
+                        useCORS: true,
+                        allowTaint: false,
+                        imageTimeout: 10000,
+                        removeContainer: false,
+                        foreignObjectRendering: false,
+                        logging: false,
+                        width: container.offsetWidth,
+                        height: container.offsetHeight,
+                        x: 0,
+                        y: 0,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: window.innerWidth,
+                        windowHeight: window.innerHeight
+                    });
+
+                    buttons.style.visibility = 'visible';
+
+                    const link = document.createElement('a');
+                    const now = new Date();
+                    const filename = `TrendRadar_Report_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.png`;
+
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    button.textContent = 'Saved Successfully!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 2000);
+
+                } catch (error) {
+                    const buttons = document.querySelector('.save-buttons');
+                    buttons.style.visibility = 'visible';
+                    button.textContent = 'Save Failed';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                }
+            }
+
+            async function saveAsMultipleImages() {
+                const button = event.target;
+                const originalText = button.textContent;
+                const container = document.querySelector('.container');
+                const scale = 1.5;
+                const maxHeight = 5000 / scale;
+
+                try {
+                    button.textContent = 'Analyzing...';
+                    button.disabled = true;
+
+                    // 获取所有可能的分割元素
+                    const newsItems = Array.from(container.querySelectorAll('.news-item'));
+                    const wordGroups = Array.from(container.querySelectorAll('.word-group'));
+                    const newSection = container.querySelector('.new-section');
+                    const errorSection = container.querySelector('.error-section');
+                    const header = container.querySelector('.header');
+                    const footer = container.querySelector('.footer');
+
+                    // 计算元素位置和高度
+                    const containerRect = container.getBoundingClientRect();
+                    const elements = [];
+
+                    // 添加header作为必须包含的元素
+                    elements.push({
+                        type: 'header',
+                        element: header,
+                        top: 0,
+                        bottom: header.offsetHeight,
+                        height: header.offsetHeight
+                    });
+
+                    // 添加错误信息（如果存在）
+                    if (errorSection) {
+                        const rect = errorSection.getBoundingClientRect();
+                        elements.push({
+                            type: 'error',
+                            element: errorSection,
+                            top: rect.top - containerRect.top,
+                            bottom: rect.bottom - containerRect.top,
+                            height: rect.height
+                        });
+                    }
+
+                    // 按word-group分组处理news-item
+                    wordGroups.forEach(group => {
+                        const groupRect = group.getBoundingClientRect();
+                        const groupNewsItems = group.querySelectorAll('.news-item');
+
+                        // 添加word-group的header部分
+                        const wordHeader = group.querySelector('.word-header');
+                        if (wordHeader) {
+                            const headerRect = wordHeader.getBoundingClientRect();
+                            elements.push({
+                                type: 'word-header',
+                                element: wordHeader,
+                                parent: group,
+                                top: groupRect.top - containerRect.top,
+                                bottom: headerRect.bottom - containerRect.top,
+                                height: headerRect.height
+                            });
+                        }
+
+                        // 添加每个news-item
+                        groupNewsItems.forEach(item => {
+                            const rect = item.getBoundingClientRect();
+                            elements.push({
+                                type: 'news-item',
+                                element: item,
+                                parent: group,
+                                top: rect.top - containerRect.top,
+                                bottom: rect.bottom - containerRect.top,
+                                height: rect.height
+                            });
+                        });
+                    });
+
+                    // 添加新增新闻部分
+                    if (newSection) {
+                        const rect = newSection.getBoundingClientRect();
+                        elements.push({
+                            type: 'new-section',
+                            element: newSection,
+                            top: rect.top - containerRect.top,
+                            bottom: rect.bottom - containerRect.top,
+                            height: rect.height
+                        });
+                    }
+
+                    // 添加footer
+                    const footerRect = footer.getBoundingClientRect();
+                    elements.push({
+                        type: 'footer',
+                        element: footer,
+                        top: footerRect.top - containerRect.top,
+                        bottom: footerRect.bottom - containerRect.top,
+                        height: footer.offsetHeight
+                    });
+
+                    // 计算分割点
+                    const segments = [];
+                    let currentSegment = { start: 0, end: 0, height: 0, includeHeader: true };
+                    let headerHeight = header.offsetHeight;
+                    currentSegment.height = headerHeight;
+
+                    for (let i = 1; i < elements.length; i++) {
+                        const element = elements[i];
+                        const potentialHeight = element.bottom - currentSegment.start;
+
+                        // 检查是否需要创建新分段
+                        if (potentialHeight > maxHeight && currentSegment.height > headerHeight) {
+                            // 在前一个元素结束处分割
+                            currentSegment.end = elements[i - 1].bottom;
+                            segments.push(currentSegment);
+
+                            // 开始新分段
+                            currentSegment = {
+                                start: currentSegment.end,
+                                end: 0,
+                                height: element.bottom - currentSegment.end,
+                                includeHeader: false
+                            };
+                        } else {
+                            currentSegment.height = potentialHeight;
+                            currentSegment.end = element.bottom;
+                        }
+                    }
+
+                    // 添加最后一个分段
+                    if (currentSegment.height > 0) {
+                        currentSegment.end = container.offsetHeight;
+                        segments.push(currentSegment);
+                    }
+
+                    button.textContent = `Generating (0/${segments.length})...`;
+
+                    // 隐藏保存按钮
+                    const buttons = document.querySelector('.save-buttons');
+                    buttons.style.visibility = 'hidden';
+
+                    // 为每个分段生成图片
+                    const images = [];
+                    for (let i = 0; i < segments.length; i++) {
+                        const segment = segments[i];
+                        button.textContent = `Generating (${i + 1}/${segments.length})...`;
+
+                        // 创建临时容器用于截图
+                        const tempContainer = document.createElement('div');
+                        tempContainer.style.cssText = `
+                            position: absolute;
+                            left: -9999px;
+                            top: 0;
+                            width: ${container.offsetWidth}px;
+                            background: white;
+                        `;
+                        tempContainer.className = 'container';
+
+                        // 克隆容器内容
+                        const clonedContainer = container.cloneNode(true);
+
+                        // 移除克隆内容中的保存按钮
+                        const clonedButtons = clonedContainer.querySelector('.save-buttons');
+                        if (clonedButtons) {
+                            clonedButtons.style.display = 'none';
+                        }
+
+                        tempContainer.appendChild(clonedContainer);
+                        document.body.appendChild(tempContainer);
+
+                        // 等待DOM更新
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // 使用html2canvas截取特定区域
+                        const canvas = await html2canvas(clonedContainer, {
+                            backgroundColor: '#ffffff',
+                            scale: scale,
+                            useCORS: true,
+                            allowTaint: false,
+                            imageTimeout: 10000,
+                            logging: false,
+                            width: container.offsetWidth,
+                            height: segment.end - segment.start,
+                            x: 0,
+                            y: segment.start,
+                            windowWidth: window.innerWidth,
+                            windowHeight: window.innerHeight
+                        });
+
+                        images.push(canvas.toDataURL('image/png', 1.0));
+
+                        // 清理临时容器
+                        document.body.removeChild(tempContainer);
+                    }
+
+                    // 恢复按钮显示
+                    buttons.style.visibility = 'visible';
+
+                    // 下载所有图片
+                    const now = new Date();
+                    const baseFilename = `TrendRadar_Report_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+
+                    for (let i = 0; i < images.length; i++) {
+                        const link = document.createElement('a');
+                        link.download = `${baseFilename}_part${i + 1}.png`;
+                        link.href = images[i];
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        // 延迟一下避免浏览器阻止多个下载
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    button.textContent = `Saved ${segments.length} images!`;
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('Segment save failed:', error);
+                    const buttons = document.querySelector('.save-buttons');
+                    buttons.style.visibility = 'visible';
+                    button.textContent = 'Save Failed';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                window.scrollTo(0, 0);
+            });
+        </script>
+    </body>
+    </html>
+    

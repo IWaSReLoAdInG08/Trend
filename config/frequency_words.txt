@@ -1,0 +1,103 @@
+# Indian Market Keywords Configuration
+# Keywords are grouped by topic (separated by blank lines)
+# Syntax:
+#   - Regular word: basic matching
+#   - +word: must appear (required word)
+#   - !word: filter out (exclude word)
+#   - @number: limit display count for this keyword
+#   - [GLOBAL_FILTER]: global exclusion section
+
+# Indian Companies & Startups
+Tata
+Reliance
+Adani
+Infosys
+TCS
+Wipro
+HCL
+Tech Mahindra
+
+# Indian Tech & Startups
+Flipkart
+Paytm
+Zomato
+Swiggy
+Ola
+PhonePe
+CRED
+Razorpay
+Zerodha
+
+# Indian Personalities
+Modi
+Narendra Modi
+Ambani
+Mukesh Ambani
+Ratan Tata
+Narayana Murthy
+
+# Global Tech (relevant to India)
+Google
+Microsoft
+Apple
+Amazon
+Meta
+Facebook
+OpenAI
+ChatGPT
+Claude
+Gemini
+
+# Technology & AI
+AI
+Artificial Intelligence
+Machine Learning
+!gai
+Blockchain
+Cryptocurrency
+Bitcoin
+Ethereum
+
+# Indian Topics
+India
+Indian
+Bollywood
+Cricket
+IPL
+ISRO
+Space
+
+# Global Topics
+Technology
+Tech
+Startup
+Innovation
+Science
+
+# Programming & Development
+Python
+JavaScript
+React
+Node.js
+Docker
+Kubernetes
+
+# Business & Economy
+Stock Market
+Sensex
+Nifty
+Economy
+GDP
+Inflation
+
+# Education & Career
+IIT
+Engineering
+MBA
+Jobs
+Career
+
+# Filter out unwanted content (optional)
+# [GLOBAL_FILTER]
+# spam
+# advertisement

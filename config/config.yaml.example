@@ -1,0 +1,161 @@
+app:
+  version_check_url: "https://raw.githubusercontent.com/sansan0/TrendRadar/refs/heads/master/version"
+  show_version_update: true # Show version update notifications
+
+  # Timezone configuration (affects all timestamps, push windows, and storage)
+  # Common timezones:
+  #   - Asia/Shanghai (Beijing Time UTC+8)
+  #   - America/New_York (Eastern Time UTC-5/-4)
+  #   - Europe/London (London Time UTC+0/+1)
+  # Full list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  timezone: "Asia/Kolkata"  # Indian Standard Time (IST)
+
+# Storage Configuration
+storage:
+  # Storage backend: local / remote / auto
+  # - local: Local SQLite + TXT/HTML files
+  # - remote: Remote cloud storage (S3 compatible)
+  # - auto: Automatic selection (uses remote in GitHub Actions if configured, else local)
+  backend: "auto"
+
+  # Data format options
+  formats:
+    sqlite: true       # Primary storage (Must be enabled)
+    txt: false         # Generate TXT snapshots
+    html: false        # Generate HTML reports (⚠️ Email push requires this to be true)
+
+  # Local storage config
+  local:
+    data_dir: "output"        # Data directory
+    retention_days: 0         # Local retention days (0 = unlimited)
+
+  # Remote storage config (S3 Compatible)
+  # Supports: Cloudflare R2, Aliyun OSS, Tencent COS, AWS S3, MinIO, etc.
+  # Suggest using GitHub Secrets or environment variables for sensitive info.
+  remote:
+    retention_days: 0         # Remote retention days (0 = unlimited)
+    # S3 Compatible Config
+    endpoint_url: ""          # Endpoint URL (or env S3_ENDPOINT_URL)
+    bucket_name: ""           # Bucket Name (or env S3_BUCKET_NAME)
+    access_key_id: ""         # Access Key ID (or env S3_ACCESS_KEY_ID)
+    secret_access_key: ""     # Secret Access Key (or env S3_SECRET_ACCESS_KEY)
+    region: ""                # Region (optional, or env S3_REGION)
+
+  # Data Pull Config (Sync from remote to local)
+  pull:
+    enabled: false            # Enable auto-pull on startup
+    days: 7                   # Pull last N days (0 = disabled)
+
+crawler:
+  request_interval: 1000 # Request interval (ms)
+  enable_crawler: true # Enable crawler functionality
+  use_proxy: false # Enable proxy
+  default_proxy: "http://127.0.0.1:10801"
+
+# 🔸 daily (Daily Summary Mode)
+#   • Push timing: Scheduled (default hourly)
+#   • Content: All daily news + New items
+#   • Scenario: Daily summary, full overview
+#
+# 🔸 current (Current List Mode)
+#   • Push timing: Scheduled (default hourly)
+#   • Content: Currently trending + New items
+#   • Scenario: Real-time trends
+#
+# 🔸 incremental (Incremental Mode) - RECOMMENDED FOR RSS
+#   • Push timing: Only when new items appear
+#   • Content: New items only
+#   • Scenario: Avoid repetition
+
+# Report Mode
+report:
+  mode: "incremental" # Options: "daily"|"incremental"|"current"
+  rank_threshold: 5 # Rank highlight threshold
+  sort_by_position_first: false # Sort priority: true=by position, false=by hotness/count
+  max_news_per_keyword: 0 # Max news per keyword (0=unlimited)
+  reverse_content_order: false # Content order: false=stats first, true=new items first
+
+notification:
+  enable_notification: true # Enable notifications
+  message_batch_size: 4000 # Batch size (bytes)
+  dingtalk_batch_size: 20000 
+  feishu_batch_size: 30000 
+  bark_batch_size: 4000 
+  slack_batch_size: 4000 
+  batch_send_interval: 3 # Batch send interval (seconds)
+  feishu_message_separator: "━━━━━━━━━━━━━━━━━━━" 
+  max_accounts_per_channel: 3 # Max accounts per channel
+
+  # 🕐 Push Window Control (Optional)
+  push_window:
+    enabled: false  # Enable push window control
+    time_range:
+      start: "20:00"  # Start time
+      end: "22:00"    # End time
+    once_per_day: true  # Push only once per day in window
+
+  # ⚠️⚠️⚠️ IMPORTANT SECURITY WARNING ⚠️⚠️⚠️
+  # 🔴 NEVER expose webhooks publicly!!!
+  # 🔴 If deploying via GitHub fork, DO NOT fill webhooks below
+  # 🔴 Instead, add them to GitHub Secrets (Settings -> Secrets and variables -> Actions)
+  
+  webhooks:
+    feishu_url: ""
+    dingtalk_url: ""
+    wework_url: ""
+    wework_msg_type: "markdown"
+    telegram_bot_token: "" 
+    telegram_chat_id: "" 
+    email_from: "" 
+    email_password: "" 
+    email_to: "" 
+    email_smtp_server: "" 
+    email_smtp_port: "" 
+    ntfy_server_url: "https://ntfy.sh" 
+    ntfy_topic: "" 
+    ntfy_token: "" 
+    bark_url: "" 
+    slack_webhook_url: "" 
+
+# Weight Configuration for Sorting
+weight:
+  rank_weight: 0.6      # Rank weight
+  frequency_weight: 0.3 # Frequency weight
+  hotness_weight: 0.1   # Hotness weight
+
+# Platform Configuration for Indian Market
+platforms: []
+
+# RSS Feed Sources (Indian News)
+rss_feeds:
+  - rss_url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"
+    id: "toi-top"
+    name: "Times of India - Top Stories"
+  
+  - rss_url: "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms"
+    id: "toi-india"
+    name: "Times of India - India News"
+  
+  - rss_url: "https://feeds.feedburner.com/NdtvNews-TopStories"
+    id: "ndtv-top"
+    name: "NDTV - Top Stories"
+  
+  - rss_url: "https://feeds.feedburner.com/ndtv/Lsgd"
+    id: "ndtv-india"
+    name: "NDTV - India News"
+  
+  - rss_url: "https://www.hindustantimes.com/feeds/rss/latestnews/rssfeed.xml"
+    id: "ht-latest"
+    name: "Hindustan Times - Latest"
+  
+  - rss_url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml"
+    id: "ht-india"
+    name: "Hindustan Times - India"
+  
+  - rss_url: "https://www.indiatoday.in/rss/home"
+    id: "it-home"
+    name: "India Today - Home"
+  
+  - rss_url: "https://www.indiatoday.in/rss/1206514"
+    id: "it-india"
+    name: "India Today - India"
