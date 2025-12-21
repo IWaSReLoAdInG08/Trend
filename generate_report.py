@@ -97,19 +97,10 @@ def generate_report(target_date: str = None, output_path: str = None):
         total_items = sum(len(titles) for titles in all_results.values())
         logger.info(f"Loaded {total_items} items from database.")
         
-        # 4. Perform Analysis
-        word_groups, filter_words, global_filters = ctx.load_frequency_words()
-        
-        stats, total = ctx.count_frequency(
-            all_results,
-            word_groups,
-            filter_words,
-            final_id_to_name,
-            title_info,
-            new_titles=None,
-            mode="daily",
-            global_filters=global_filters
-        )
+        # 4. Perform Analysis - Now using Categories instead of Keywords
+        logger.info("Grouping news items by categories...")
+        stats = ctx.group_by_categories(news_data)
+        total = sum(len(items) for items in news_data.items.values())
         
         # 5. Generate HTML
         html_file = ctx.generate_html(

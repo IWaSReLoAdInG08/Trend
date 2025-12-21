@@ -21,6 +21,7 @@ class NewsItem:
     url: str = ""                       # Link URL
     mobile_url: str = ""                # Mobile URL
     crawl_time: str = ""                # Crawl time (HH:MM format)
+    categories: List[str] = field(default_factory=list) # Category tags
 
     # Statistics (for analysis)
     ranks: List[int] = field(default_factory=list)  # Historical rank list
@@ -38,6 +39,7 @@ class NewsItem:
             "url": self.url,
             "mobile_url": self.mobile_url,
             "crawl_time": self.crawl_time,
+            "categories": self.categories,
             "ranks": self.ranks,
             "first_time": self.first_time,
             "last_time": self.last_time,
@@ -55,6 +57,7 @@ class NewsItem:
             url=data.get("url", ""),
             mobile_url=data.get("mobile_url", ""),
             crawl_time=data.get("crawl_time", ""),
+            categories=data.get("categories", []),
             ranks=data.get("ranks", []),
             first_time=data.get("first_time", ""),
             last_time=data.get("last_time", ""),
@@ -350,6 +353,57 @@ class StorageBackend(ABC):
 
         Returns:
             Whether recording was successful
+        """
+        pass
+
+    # === Opinion & Sentiment Related Methods ===
+
+    @abstractmethod
+    def save_opinions(self, opinions: List[Dict], date: Optional[str] = None) -> List[int]:
+        """
+        Save public opinions/reactions
+
+        Args:
+            opinions: List of opinion dicts
+            date: Date string
+
+        Returns:
+            List of saved opinion IDs
+        """
+        pass
+
+    @abstractmethod
+    def link_opinion_to_news(self, news_item_id: int, opinion_id: int, match_type: str = 'keyword', match_score: float = 1.0, date: Optional[str] = None) -> bool:
+        """
+        Link an opinion to a news item
+        """
+        pass
+
+    @abstractmethod
+    def save_sentiment_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """
+        Save a sentiment summary for a news item
+        """
+        pass
+
+    @abstractmethod
+    def save_hourly_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """
+        Save an hourly summary
+        """
+        pass
+
+    @abstractmethod
+    def get_latest_summary(self, date: Optional[str] = None) -> Optional[Dict]:
+        """
+        Get the latest hourly summary
+        """
+        pass
+
+    @abstractmethod
+    def get_news_with_opinions(self, news_item_id: int, date: Optional[str] = None) -> Dict:
+        """
+        Get a specific news item with its linked opinions and sentiment summary
         """
         pass
 

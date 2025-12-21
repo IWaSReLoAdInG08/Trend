@@ -470,3 +470,87 @@ def count_word_frequency(
         print(f"After Frequency Filtering: {matched_news_count} news matched")
 
     return stats, total_titles
+def group_by_categories(
+    news_data: "NewsData",
+    weight_config: Optional[Dict] = None,
+    rank_threshold: int = 3,
+    convert_time_func: Optional[Callable[[str], str]] = None,
+) -> List[Dict]:
+    """
+    Group news items by their categories for reporting
+    
+    Returns:
+        List[Dict]: Stats results list in the format expected by the report generator
+    """
+    if weight_config is None:
+        weight_config = {
+            "RANK_WEIGHT": 1.0,
+            "FREQUENCY_WEIGHT": 1.0,
+            "HOTNESS_WEIGHT": 1.0,
+        }
+    if convert_time_func is None:
+        convert_time_func = lambda x: x
+
+    category_stats = {}
+    
+    # Pre-initialize categories to maintain a fixed order if desired, 
+    # but here we'll just use what's found
+    
+    for source_id, news_list in news_data.items.items():
+        source_name = news_data.id_to_name.get(source_id, source_id)
+        for item in news_list:
+            # Use assigned categories, or "Uncategorized"
+            cats = item.categories if item.categories else ["Uncategorized"]
+            
+            for cat in cats:
+                if cat not in category_stats:
+                    category_stats[cat] = {"count": 0, "titles": []}
+                
+                category_stats[cat]["count"] += 1
+                
+                # Format item for report
+                title_data = {
+                    "title": item.title,
+                    "source_name": source_name,
+                    "first_time": getattr(item, 'first_time', item.crawl_time),
+                    "last_time": getattr(item, 'last_time', item.crawl_time),
+                    "time_display": format_time_display(
+                        getattr(item, 'first_time', item.crawl_time),
+                        getattr(item, 'last_time', item.crawl_time),
+                        convert_time_func
+                    ),
+                    "count": getattr(item, 'count', 1),
+                    "ranks": item.ranks if item.ranks else [item.rank],
+                    "rank_threshold": rank_threshold,
+                    "url": item.url,
+                    "mobileUrl": item.mobile_url,
+                    "is_new": getattr(item, 'is_new', False)
+                }
+                category_stats[cat]["titles"].append(title_data)
+
+    # Convert to stats list and sort
+    stats = []
+    total_count = sum(len(news) for news in news_data.items.values())
+    
+    for cat, data in category_stats.items():
+        # Sort titles within category by weight
+        sorted_titles = sorted(
+            data["titles"],
+            key=lambda x: (
+                -calculate_news_weight(x, rank_threshold, weight_config),
+                min(x["ranks"]) if x["ranks"] else 999,
+                -x["count"],
+            ),
+        )
+        
+        stats.append({
+            "word": cat,
+            "count": data["count"],
+            "titles": sorted_titles,
+            "percentage": round(data["count"] / total_count * 100, 2) if total_count > 0 else 0
+        })
+
+    # Sort categories by item count
+    stats.sort(key=lambda x: -x["count"])
+    
+    return stats

@@ -25,6 +25,7 @@ from trendradar.core import (
     detect_latest_new_titles,
     is_first_crawl_today,
     count_word_frequency,
+    group_by_categories,
 )
 from trendradar.report import (
     clean_title,
@@ -232,6 +233,15 @@ class AppContext:
             is_first_crawl_func=self.is_first_crawl,
             convert_time_func=self.convert_time_display,
             quiet=quiet,
+        )
+
+    def group_by_categories(self, news_data: Any) -> List[Dict]:
+        """Group news items by their categories for reporting"""
+        return group_by_categories(
+            news_data=news_data,
+            weight_config=self.weight_config,
+            rank_threshold=self.rank_threshold,
+            convert_time_func=self.convert_time_display,
         )
 
     # === Report Generation ===

@@ -9,6 +9,7 @@ import sqlite3
 import shutil
 import pytz
 import re
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -86,7 +87,7 @@ class LocalStorageBackend(StorageBackend):
         db_path = str(self._get_db_path(date))
 
         if db_path not in self._db_connections:
-            conn = sqlite3.connect(db_path)
+            conn = sqlite3.connect(db_path, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             self._init_tables(conn)
             self._db_connections[db_path] = conn
@@ -182,15 +183,16 @@ class LocalStorageBackend(StorageBackend):
 
                                 # Update existing record
                                 cursor.execute("""
-                                    UPDATE news_items SET
-                                        title = ?,
+                                    title = ?,
                                         rank = ?,
                                         mobile_url = ?,
+                                        categories = ?,
                                         last_crawl_time = ?,
                                         crawl_count = crawl_count + 1,
                                         updated_at = ?
                                     WHERE id = ?
                                 """, (item.title, item.rank, item.mobile_url,
+                                      json.dumps(item.categories),
                                       data.crawl_time, now_str, existing_id))
                                 updated_count += 1
                             else:
@@ -198,11 +200,12 @@ class LocalStorageBackend(StorageBackend):
                                 cursor.execute("""
                                     INSERT INTO news_items
                                     (title, platform_id, rank, url, mobile_url,
-                                     first_crawl_time, last_crawl_time, crawl_count,
-                                     created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                                     categories, first_crawl_time, last_crawl_time, 
+                                     crawl_count, created_at, updated_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                                 """, (item.title, source_id, item.rank, normalized_url,
-                                      item.mobile_url, data.crawl_time, data.crawl_time,
+                                      item.mobile_url, json.dumps(item.categories),
+                                      data.crawl_time, data.crawl_time,
                                       now_str, now_str))
                                 new_id = cursor.lastrowid
                                 # Record initial rank
@@ -217,11 +220,12 @@ class LocalStorageBackend(StorageBackend):
                             cursor.execute("""
                                 INSERT INTO news_items
                                 (title, platform_id, rank, url, mobile_url,
-                                 first_crawl_time, last_crawl_time, crawl_count,
-                                 created_at, updated_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                                 categories, first_crawl_time, last_crawl_time, 
+                                 crawl_count, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                             """, (item.title, source_id, item.rank, "",
-                                  item.mobile_url, data.crawl_time, data.crawl_time,
+                                  item.mobile_url, json.dumps(item.categories),
+                                  data.crawl_time, data.crawl_time,
                                   now_str, now_str))
                             new_id = cursor.lastrowid
                             # Record initial rank
@@ -311,7 +315,7 @@ class LocalStorageBackend(StorageBackend):
             # Get all news data (including id for querying rank history)
             cursor.execute("""
                 SELECT n.id, n.title, n.platform_id, p.name as platform_name,
-                       n.rank, n.url, n.mobile_url,
+                       n.rank, n.url, n.mobile_url, n.categories,
                        n.first_crawl_time, n.last_crawl_time, n.crawl_count
                 FROM news_items n
                 LEFT JOIN platforms p ON n.platform_id = p.id
@@ -360,6 +364,12 @@ class LocalStorageBackend(StorageBackend):
                 # Get rank history, use current rank if not found
                 ranks = rank_history_map.get(news_id, [row[4]])
 
+                # Parse categories
+                try:
+                    categories = json.loads(row[7]) if row[7] else []
+                except:
+                    categories = []
+
                 items[platform_id].append(NewsItem(
                     title=title,
                     source_id=platform_id,
@@ -367,11 +377,12 @@ class LocalStorageBackend(StorageBackend):
                     rank=row[4],
                     url=row[5] or "",
                     mobile_url=row[6] or "",
-                    crawl_time=row[8],  # last_crawl_time
+                    crawl_time=row[9],  # last_crawl_time is row[9] now
+                    categories=categories,
                     ranks=ranks,
-                    first_time=row[7],  # first_crawl_time
-                    last_time=row[8],   # last_crawl_time
-                    count=row[9],       # crawl_count
+                    first_time=row[8],  # first_crawl_time
+                    last_time=row[9],   # last_crawl_time
+                    count=row[10],      # crawl_count
                 ))
 
             final_items = items
@@ -441,7 +452,7 @@ class LocalStorageBackend(StorageBackend):
             # Get news data for that time (including id for querying rank history)
             cursor.execute("""
                 SELECT n.id, n.title, n.platform_id, p.name as platform_name,
-                       n.rank, n.url, n.mobile_url,
+                       n.rank, n.url, n.mobile_url, n.categories,
                        n.first_crawl_time, n.last_crawl_time, n.crawl_count
                 FROM news_items n
                 LEFT JOIN platforms p ON n.platform_id = p.id
@@ -487,6 +498,12 @@ class LocalStorageBackend(StorageBackend):
                 # Get rank history, use current rank if not found
                 ranks = rank_history_map.get(news_id, [row[4]])
 
+                # Parse categories
+                try:
+                    categories = json.loads(row[7]) if row[7] else []
+                except:
+                    categories = []
+
                 items[platform_id].append(NewsItem(
                     title=row[1],
                     source_id=platform_id,
@@ -494,11 +511,12 @@ class LocalStorageBackend(StorageBackend):
                     rank=row[4],
                     url=row[5] or "",
                     mobile_url=row[6] or "",
-                    crawl_time=row[8],  # last_crawl_time
+                    crawl_time=row[9],  # last_crawl_time
+                    categories=categories,
                     ranks=ranks,
-                    first_time=row[7],  # first_crawl_time
-                    last_time=row[8],   # last_crawl_time
-                    count=row[9],       # crawl_count
+                    first_time=row[8],  # first_crawl_time
+                    last_time=row[9],   # last_crawl_time
+                    count=row[10],      # crawl_count
                 ))
 
             # Get failed sources (for the latest crawl)
@@ -883,6 +901,165 @@ class LocalStorageBackend(StorageBackend):
         except Exception as e:
             print(f"[Local Storage] Failed to record push: {e}")
             return False
+
+    # === Opinion & Sentiment Related Methods ===
+
+    def save_opinions(self, opinions: List[Dict], date: Optional[str] = None) -> List[int]:
+        """Save public opinions/reactions"""
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
+            
+            saved_ids = []
+            for op in opinions:
+                cursor.execute("""
+                    INSERT INTO opinions (text, source, author, upvotes, sentiment, sentiment_score, original_url, pub_time, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    op.get('text'), op.get('source'), op.get('author'), 
+                    op.get('upvotes', 0), op.get('sentiment'), op.get('score'),
+                    op.get('original_url'), op.get('pub_time'), now_str
+                ))
+                saved_ids.append(cursor.lastrowid)
+            
+            conn.commit()
+            return saved_ids
+        except Exception as e:
+            print(f"[Local Storage] Failed to save opinions: {e}")
+            return []
+
+    def link_opinion_to_news(self, news_item_id: int, opinion_id: int, match_type: str = 'keyword', match_score: float = 1.0, date: Optional[str] = None) -> bool:
+        """Link an opinion to a news item"""
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT OR IGNORE INTO news_opinions_link (news_item_id, opinion_id, match_type, match_score)
+                VALUES (?, ?, ?, ?)
+            """, (news_item_id, opinion_id, match_type, match_score))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"[Local Storage] Failed to link opinion to news: {e}")
+            return False
+
+    def save_sentiment_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """Save a sentiment summary for a news item"""
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
+
+            cursor.execute("""
+                INSERT INTO sentiment_summaries (news_item_id, topic, overall_sentiment, average_score, opinion_count, summary_text, generated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                summary_data.get('news_item_id'), summary_data.get('topic'),
+                summary_data.get('overall_sentiment'), summary_data.get('average_score'),
+                summary_data.get('opinion_count'), summary_data.get('summary_text'),
+                now_str
+            ))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"[Local Storage] Failed to save sentiment summary: {e}")
+            return False
+
+    # === Hourly Summary Related Methods ===
+
+    def save_hourly_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """
+        Save an hourly summary
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO hourly_summaries
+                (time_window, date, highlights, top_categories)
+                VALUES (?, ?, ?, ?)
+            """, (
+                summary_data.get("time_window", ""),
+                summary_data.get("date", ""),
+                json.dumps(summary_data.get("highlights", [])),
+                json.dumps(summary_data.get("top_categories", []))
+            ))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"[Local Storage] Failed to save hourly summary: {e}")
+            return False
+
+    def get_latest_summary(self, date: Optional[str] = None) -> Optional[Dict]:
+        """
+        Get the latest hourly summary
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT time_window, date, highlights, top_categories
+                FROM hourly_summaries
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            
+            row = cursor.fetchone()
+            if not row:
+                return None
+                
+            return {
+                "time_window": row[0],
+                "date": row[1],
+                "highlights": json.loads(row[2]),
+                "top_categories": json.loads(row[3])
+            }
+        except Exception as e:
+            print(f"[Local Storage] Failed to get latest summary: {e}")
+            return None
+
+    def get_news_with_opinions(self, news_item_id: int, date: Optional[str] = None) -> Dict:
+        """Get a specific news item with its linked opinions and sentiment summary"""
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            
+            # 1. Get News Item
+            cursor.execute("SELECT * FROM news_items WHERE id = ?", (news_item_id,))
+            news_row = cursor.fetchone()
+            if not news_row:
+                return {}
+            
+            news_data = dict(news_row)
+            
+            # 2. Get Linked Opinions
+            cursor.execute("""
+                SELECT o.* FROM opinions o
+                JOIN news_opinions_link l ON o.id = l.opinion_id
+                WHERE l.news_item_id = ?
+                ORDER BY o.upvotes DESC
+            """, (news_item_id,))
+            news_data['opinions'] = [dict(r) for r in cursor.fetchall()]
+            
+            # 3. Get Summary
+            cursor.execute("""
+                SELECT * FROM sentiment_summaries WHERE news_item_id = ?
+                ORDER BY generated_at DESC LIMIT 1
+            """, (news_item_id,))
+            summary_row = cursor.fetchone()
+            news_data['sentiment_summary'] = dict(summary_row) if summary_row else None
+            
+            return news_data
+        except Exception as e:
+            print(f"[Local Storage] Failed to get news with opinions: {e}")
+            return {}
 
     def __del__(self):
         """Destructor, ensures connection closure"""

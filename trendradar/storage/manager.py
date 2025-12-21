@@ -6,7 +6,7 @@ Automatically selects the appropriate storage backend based on environment and c
 """
 
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 
 from trendradar.storage.base import StorageBackend, NewsData
 
@@ -290,6 +290,32 @@ class StorageManager:
             Whether recording was successful
         """
         return self.get_backend().record_push(report_type, date)
+
+    # === Opinion & Sentiment Related Methods ===
+
+    def save_opinions(self, opinions: List[dict], date: Optional[str] = None) -> List[int]:
+        """Save public opinions/reactions"""
+        return self.get_backend().save_opinions(opinions, date)
+
+    def link_opinion_to_news(self, news_item_id: int, opinion_id: int, match_type: str = 'keyword', match_score: float = 1.0, date: Optional[str] = None) -> bool:
+        """Link an opinion to a news item"""
+        return self.get_backend().link_opinion_to_news(news_item_id, opinion_id, match_type, match_score, date)
+
+    def save_sentiment_summary(self, summary_data: dict, date: Optional[str] = None) -> bool:
+        """Save a sentiment summary for a news item"""
+        return self.get_backend().save_sentiment_summary(summary_data, date)
+
+    def save_hourly_summary(self, summary_data: dict, date: Optional[str] = None) -> bool:
+        """Save an hourly summary"""
+        return self.get_backend().save_hourly_summary(summary_data, date)
+
+    def get_latest_summary(self, date: Optional[str] = None) -> Optional[Dict]:
+        """Get the latest hourly summary"""
+        return self.get_backend().get_latest_summary(date)
+
+    def get_news_with_opinions(self, news_item_id: int, date: Optional[str] = None) -> dict:
+        """Get a specific news item with its linked opinions and sentiment summary"""
+        return self.get_backend().get_news_with_opinions(news_item_id, date)
 
 
 def get_storage_manager(

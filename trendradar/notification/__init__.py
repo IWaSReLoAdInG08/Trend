@@ -1,20 +1,20 @@
 # coding=utf-8
 """
-通知推送模块
+Notification Push Module
 
-提供多渠道通知推送功能，包括：
-- 飞书、钉钉、企业微信
-- Telegram、Slack
-- Email、ntfy、Bark
+Provides multi-channel notification push functionality, including:
+- Feishu, DingTalk, WeChat Work
+- Telegram, Slack
+- Email, ntfy, Bark
 
-模块结构：
-- push_manager: 推送记录管理
-- formatters: 内容格式转换
-- batch: 批次处理工具
-- renderer: 通知内容渲染
-- splitter: 消息分批拆分
-- senders: 消息发送器（各渠道发送函数）
-- dispatcher: 多账号通知调度器
+Module Structure:
+- push_manager: Push record management
+- formatters: Content format conversion
+- batch: Batch processing tools
+- renderer: Notification content rendering
+- splitter: Message batch splitting
+- senders: Message senders (push functions for each channel)
+- dispatcher: Multi-account notification dispatcher
 """
 
 from trendradar.notification.push_manager import PushRecordManager
