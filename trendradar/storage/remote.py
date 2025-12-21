@@ -746,6 +746,32 @@ class RemoteStorageBackend(StorageBackend):
             print(f"[Remote Storage] Failed to detect new titles: {e}")
             return {}
 
+    # === Opinion & Sentiment Related Methods ===
+
+    def save_opinions(self, opinions: List[Dict], date: Optional[str] = None) -> List[int]:
+        """Placeholder for remote storage"""
+        return []
+
+    def link_opinion_to_news(self, news_item_id: int, opinion_id: int, match_type: str = 'keyword', match_score: float = 1.0, date: Optional[str] = None) -> bool:
+        """Placeholder for remote storage"""
+        return False
+
+    def save_sentiment_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """Placeholder for remote storage"""
+        return False
+
+    def save_hourly_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """Placeholder for remote storage"""
+        return False
+
+    def get_latest_summary(self, date: Optional[str] = None) -> Optional[Dict]:
+        """Placeholder for remote storage"""
+        return None
+
+    def get_news_with_opinions(self, news_item_id: int, date: Optional[str] = None) -> Dict:
+        """Placeholder for remote storage"""
+        return {}
+
     def save_txt_snapshot(self, data: NewsData) -> Optional[str]:
         """Save TXT snapshot (remote mode defaults to unsupported)"""
         if not self.enable_txt:
@@ -1027,6 +1053,24 @@ class RemoteStorageBackend(StorageBackend):
         except Exception as e:
             print(f"[Remote Storage] Failed to record push: {e}")
             return False
+
+    # === Opinion & Sentiment Related Methods (Placeholders for Remote) ===
+
+    def save_opinions(self, opinions: List[Dict], date: Optional[str] = None) -> List[int]:
+        """Save public opinions (not fully implemented for remote yet)"""
+        return []
+
+    def link_opinion_to_news(self, news_item_id: int, opinion_id: int, match_type: str = 'keyword', match_score: float = 1.0, date: Optional[str] = None) -> bool:
+        """Link an opinion to a news item"""
+        return False
+
+    def save_sentiment_summary(self, summary_data: Dict, date: Optional[str] = None) -> bool:
+        """Save a sentiment summary for a news item"""
+        return False
+
+    def get_news_with_opinions(self, news_item_id: int, date: Optional[str] = None) -> Dict:
+        """Get a specific news item with its linked opinions"""
+        return {}
 
     def __del__(self):
         """Destructor"""

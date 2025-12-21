@@ -266,10 +266,12 @@ def _print_notification_sources(config: Dict) -> None:
         notification_sources.append(f"Slack({slack_source}, {count} accounts)")
 
     if notification_sources:
-        print(f"Notification Channels Configured: {', '.join(notification_sources)}")
-        print(f"Max Accounts Per Channel: {max_accounts}")
+        pass
+        # print(f"Notification Channels Configured: {', '.join(notification_sources)}")
+        # print(f"Max Accounts Per Channel: {max_accounts}")
     else:
-        print("No Notification Channels Configured")
+        pass
+        # print("No Notification Channels Configured")
 
 
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
@@ -294,7 +296,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     with open(config_path, "r", encoding="utf-8") as f:
         config_data = yaml.safe_load(f)
 
-    print(f"Config file loaded: {config_path}")
+    # print(f"Config file loaded: {config_path}")
 
     # Merge all configs
     config = {}
