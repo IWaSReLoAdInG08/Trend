@@ -131,7 +131,7 @@ class NotificationDispatcher:
             and self.config.get("EMAIL_PASSWORD")
             and self.config.get("EMAIL_TO")
         ):
-            results["email"] = self._send_email(report_type, html_file_path)
+            results["email"] = self._send_email(report_data, report_type, html_file_path)
 
         return results
 
@@ -404,17 +404,26 @@ class NotificationDispatcher:
 
     def _send_email(
         self,
+        report_data: Dict,
         report_type: str,
         html_file_path: Optional[str],
     ) -> bool:
-        """Send Email (keeping original logic, already supports multiple recipients)"""
-        return send_to_email(
-            from_email=self.config["EMAIL_FROM"],
-            password=self.config["EMAIL_PASSWORD"],
-            to_email=self.config["EMAIL_TO"],
-            report_type=report_type,
-            html_file_path=html_file_path,
-            custom_smtp_server=self.config.get("EMAIL_SMTP_SERVER", ""),
-            custom_smtp_port=self.config.get("EMAIL_SMTP_PORT", ""),
-            get_time_func=self.get_time_func,
-        )
+        """Send Email (supports both HTML files and plain text)"""
+        # Extract text content if available
+        text_content = report_data.get("full_text") if isinstance(report_data, dict) else None
+        
+        try:
+            return send_to_email(
+                from_email=self.config["EMAIL_FROM"],
+                password=self.config["EMAIL_PASSWORD"],
+                to_email=self.config["EMAIL_TO"],
+                report_type=report_type,
+                html_file_path=html_file_path,
+                text_content=text_content,
+                custom_smtp_server=self.config.get("EMAIL_SMTP_SERVER", ""),
+                custom_smtp_port=self.config.get("EMAIL_SMTP_PORT", ""),
+                get_time_func=self.get_time_func,
+            )
+        except Exception as e:
+            logger.error(f"Error in _send_email: {e}")
+            return False

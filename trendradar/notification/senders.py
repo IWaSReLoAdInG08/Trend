@@ -476,10 +476,11 @@ def send_to_email(
     password: str,
     to_email: str,
     report_type: str,
-    html_file_path: str,
+    html_file_path: Optional[str] = None,
     custom_smtp_server: Optional[str] = None,
     custom_smtp_port: Optional[int] = None,
     *,
+    text_content: Optional[str] = None,
     get_time_func: Callable = None,
 ) -> bool:
     """
@@ -490,22 +491,34 @@ def send_to_email(
         password: 邮箱密码/授权码
         to_email: 收件人邮箱（多个用逗号分隔）
         report_type: 报告类型
-        html_file_path: HTML 报告文件路径
+        html_file_path: HTML 报告文件路径（可选，如果提供text_content则忽略）
         custom_smtp_server: 自定义 SMTP 服务器（可选）
         custom_smtp_port: 自定义 SMTP 端口（可选）
+        text_content: 纯文本内容（可选，用于简单文本邮件）
         get_time_func: 获取当前时间的函数
 
     Returns:
         bool: 发送是否成功
     """
     try:
-        if not html_file_path or not Path(html_file_path).exists():
-            print(f"错误：HTML文件不存在或未提供: {html_file_path}")
+        # If text_content is provided, use it directly
+        if text_content:
+            html_content = None
+            main_text_content = text_content
+        elif not html_file_path or not Path(html_file_path).exists():
+            print(f"Error: HTML file does not exist or not provided: {html_file_path}")
             return False
+        else:
+            print(f"Using HTML file: {html_file_path}")
+            with open(html_file_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            main_text_content = f"""
+TrendRadar Analysis Report
+========================
+Report Type: {report_type}
 
-        print(f"使用HTML文件: {html_file_path}")
-        with open(html_file_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
+Please use an HTML-compatible email client to view the full report content.
+            """
 
         domain = from_email.split("@")[-1].lower()
 
@@ -528,52 +541,46 @@ def send_to_email(
             smtp_port = config["port"]
             use_tls = config["encryption"] == "TLS"
         else:
-            print(f"未识别的邮箱服务商: {domain}，使用通用 SMTP 配置")
+            print(f"Unknown email provider: {domain}, using generic SMTP config")
             smtp_server = f"smtp.{domain}"
             smtp_port = 587
             use_tls = True
 
         msg = MIMEMultipart("alternative")
 
-        # 严格按照 RFC 标准设置 From header
+        # Set From header strictly according to RFC standards
         sender_name = "TrendRadar"
         msg["From"] = formataddr((sender_name, from_email))
 
-        # 设置收件人
+        # Set recipient
         recipients = [addr.strip() for addr in to_email.split(",")]
         if len(recipients) == 1:
             msg["To"] = recipients[0]
         else:
             msg["To"] = ", ".join(recipients)
 
-        # 设置邮件主题
+        # Set email subject
         now = get_time_func() if get_time_func else datetime.now()
-        subject = f"TrendRadar 热点分析报告 - {report_type} - {now.strftime('%m月%d日 %H:%M')}"
+        subject = f"TrendRadar Analysis Report - {report_type} - {now.strftime('%Y-%m-%d %H:%M')}"
         msg["Subject"] = Header(subject, "utf-8")
 
-        # 设置其他标准 header
+        # Set other standard headers
         msg["MIME-Version"] = "1.0"
         msg["Date"] = formatdate(localtime=True)
         msg["Message-ID"] = make_msgid()
 
-        # 添加纯文本部分（作为备选）
-        text_content = f"""
-TrendRadar 热点分析报告
-========================
-报告类型：{report_type}
-生成时间：{now.strftime('%Y-%m-%d %H:%M:%S')}
-
-请使用支持HTML的邮件客户端查看完整报告内容。
-        """
-        text_part = MIMEText(text_content, "plain", "utf-8")
+        # 添加纯文本部分
+        text_part = MIMEText(main_text_content, "plain", "utf-8")
         msg.attach(text_part)
 
-        html_part = MIMEText(html_content, "html", "utf-8")
-        msg.attach(html_part)
+        # 添加HTML部分（如果存在）
+        if html_content:
+            html_part = MIMEText(html_content, "html", "utf-8")
+            msg.attach(html_part)
 
-        print(f"正在发送邮件到 {to_email}...")
-        print(f"SMTP 服务器: {smtp_server}:{smtp_port}")
-        print(f"发件人: {from_email}")
+        print(f"Sending email to {to_email}...")
+        print(f"SMTP Server: {smtp_server}:{smtp_port}")
+        print(f"Sender: {from_email}")
 
         try:
             if use_tls:
@@ -592,36 +599,44 @@ TrendRadar 热点分析报告
             # 登录
             server.login(from_email, password)
 
-            # 发送邮件
-            server.send_message(msg)
+            # Send email
+            try:
+                print(f"Sending email message...")
+            except UnicodeEncodeError:
+                pass
+                
+            server.sendmail(from_email, recipients, msg.as_string())
             server.quit()
 
-            print(f"邮件发送成功 [{report_type}] -> {to_email}")
+            try:
+                print(f"Email sent successfully [{report_type}] -> {to_email}")
+            except UnicodeEncodeError:
+                pass
             return True
 
         except smtplib.SMTPServerDisconnected:
-            print("邮件发送失败：服务器意外断开连接，请检查网络或稍后重试")
+            print("Email sending failed: Server disconnected unexpectedly")
             return False
 
     except smtplib.SMTPAuthenticationError as e:
-        print("邮件发送失败：认证错误，请检查邮箱和密码/授权码")
-        print(f"详细错误: {str(e)}")
+        print("Email sending failed: Authentication error, please check username and app password")
+        print(f"Details: {str(e)}")
         return False
     except smtplib.SMTPRecipientsRefused as e:
-        print(f"邮件发送失败：收件人地址被拒绝 {e}")
+        print(f"Email sending failed: Recipients refused {e}")
         return False
     except smtplib.SMTPSenderRefused as e:
-        print(f"邮件发送失败：发件人地址被拒绝 {e}")
+        print(f"Email sending failed: Sender refused {e}")
         return False
     except smtplib.SMTPDataError as e:
-        print(f"邮件发送失败：邮件数据错误 {e}")
+        print(f"Email sending failed: Data error {e}")
         return False
     except smtplib.SMTPConnectError as e:
-        print(f"邮件发送失败：无法连接到 SMTP 服务器 {smtp_server}:{smtp_port}")
-        print(f"详细错误: {str(e)}")
+        print(f"Email sending failed: Could not connect to SMTP server {smtp_server}:{smtp_port}")
+        print(f"Details: {str(e)}")
         return False
     except Exception as e:
-        print(f"邮件发送失败 [{report_type}]：{e}")
+        print(f"Email sending failed [{report_type}]: {e}")
         import traceback
         traceback.print_exc()
         return False
