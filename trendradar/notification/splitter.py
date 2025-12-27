@@ -62,8 +62,31 @@ def split_content_into_batches(
 
     batches = []
 
+    # Handle full_text mode early to avoid stats processing
+    if "full_text" in report_data:
+        content = report_data["full_text"]
+        content_bytes = content.encode("utf-8")
+        if len(content_bytes) <= max_bytes:
+            batches.append(content)
+        else:
+            lines = content.split('\n')
+            current_chunk = []
+            current_size = 0
+            for line in lines:
+                line_size = len((line + '\n').encode("utf-8"))
+                if current_size + line_size > max_bytes:
+                    batches.append('\n'.join(current_chunk))
+                    current_chunk = [line]
+                    current_size = line_size
+                else:
+                    current_chunk.append(line)
+                    current_size += line_size
+            if current_chunk:
+                batches.append('\n'.join(current_chunk))
+        return batches
+
     total_titles = sum(
-        len(stat["titles"]) for stat in report_data["stats"] if stat["count"] > 0
+        len(stat["titles"]) for stat in report_data.get("stats", []) if stat["count"] > 0
     )
     now = get_time_func() if get_time_func else datetime.now()
 
@@ -127,6 +150,30 @@ def split_content_into_batches(
 
     current_batch = base_header
     current_batch_has_content = False
+
+    # If full_text is provided, use it directly
+    if "full_text" in report_data:
+        content = report_data["full_text"]
+        content_bytes = content.encode("utf-8")
+        if len(content_bytes) <= max_bytes:
+            batches.append(content)
+        else:
+            # Split by lines if too long
+            lines = content.split('\n')
+            current_chunk = []
+            current_size = 0
+            for line in lines:
+                line_size = len((line + '\n').encode("utf-8"))
+                if current_size + line_size > max_bytes:
+                    batches.append('\n'.join(current_chunk))
+                    current_chunk = [line]
+                    current_size = line_size
+                else:
+                    current_chunk.append(line)
+                    current_size += line_size
+            if current_chunk:
+                batches.append('\n'.join(current_chunk))
+        return batches
 
     if (
         not report_data["stats"]

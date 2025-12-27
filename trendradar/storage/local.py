@@ -183,7 +183,8 @@ class LocalStorageBackend(StorageBackend):
 
                                 # Update existing record
                                 cursor.execute("""
-                                    title = ?,
+                                    UPDATE news_items SET
+                                        title = ?,
                                         rank = ?,
                                         mobile_url = ?,
                                         categories = ?,

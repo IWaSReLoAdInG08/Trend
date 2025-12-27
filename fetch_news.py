@@ -20,6 +20,13 @@ from trendradar.storage import convert_crawl_results_to_news_data, get_storage_m
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
+# Set default email configuration
+os.environ["EMAIL_PASSWORD"] = "ismgbdbkxquzhfix"
+os.environ["EMAIL_FROM"] = "vermashivanshu83@gmail.com"
+os.environ["EMAIL_TO"] = "vermashivanshu83@gmail.com"
+os.environ["EMAIL_SMTP_SERVER"] = "smtp.gmail.com"
+os.environ["EMAIL_SMTP_PORT"] = "465"
+
 def fetch_data() -> Dict:
     """
     Fetch news data from configured sources (RSS) and save to DB.
@@ -157,13 +164,31 @@ def fetch_data() -> Dict:
                 if summary:
                     storage_manager.save_hourly_summary(summary, crawl_date)
                     logger.info(f"Summary generated: {len(summary.get('highlights', []))} highlights.")
-                    # Print notification text for terminal visibility
-                    print("\n" + summary_gen.format_notification(summary) + "\n")
+                    
+                    # Format notification text
+                    notification_text = summary_gen.format_notification(summary)
+                    try:
+                        print("\n" + notification_text + "\n")
+                    except UnicodeEncodeError:
+                        # Fallback for terminals that don't support emojis/special chars
+                        print("\n" + notification_text.encode('ascii', 'ignore').decode('ascii') + "\n")
+                    
+                    # Send Telegram notification if enabled
+                    if config.get("ENABLE_NOTIFICATION", True):
+                        logger.info("Sending Telegram notification...")
+                        dispatcher = ctx.create_notification_dispatcher()
+                        dispatcher.dispatch_all(
+                            report_data={"full_text": notification_text},
+                            report_type="Hourly Summary",
+                            mode="current"
+                        )
+                        logger.info("Notification dispatch process completed.")
             
             # Optional: Save TXT snapshot for debug/backup
             txt_file = storage_manager.save_txt_snapshot(news_data)
             
-            return {
+            # 6. Prepare Results
+            final_results = {
                 "status": "success",
                 "fetched_count": total_items,
                 "sources_count": len(results),
@@ -172,6 +197,7 @@ def fetch_data() -> Dict:
                 "date": crawl_date,
                 "txt_snapshot": txt_file
             }
+            return final_results
         else:
             return {
                 "status": "warning",
@@ -189,4 +215,8 @@ def fetch_data() -> Dict:
 if __name__ == "__main__":
     result = fetch_data()
     # Print JSON result to stdout for parsing by external tools/caller
-    print(json.dumps(result, indent=2))
+    # Use ensure_ascii=True to avoid UnicodeEncodeError in Windows terminals
+    try:
+        print(json.dumps(result, indent=2, ensure_ascii=True))
+    except Exception:
+        print(json.dumps({"status": "error", "message": "Failed to print results due to encoding error"}))
