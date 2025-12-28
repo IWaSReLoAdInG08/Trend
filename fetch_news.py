@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import logging
+import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -20,14 +21,7 @@ from trendradar.storage import convert_crawl_results_to_news_data, get_storage_m
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
-# Set default email configuration
-os.environ["EMAIL_PASSWORD"] = "ismgbdbkxquzhfix"
-os.environ["EMAIL_FROM"] = "vermashivanshu83@gmail.com"
-os.environ["EMAIL_TO"] = "vermashivanshu83@gmail.com"
-os.environ["EMAIL_SMTP_SERVER"] = "smtp.gmail.com"
-os.environ["EMAIL_SMTP_PORT"] = "465"
-
-def fetch_data() -> Dict:
+def fetch_data(send_notifications: bool = True) -> Dict:
     """
     Fetch news data from configured sources (RSS) and save to DB.
     Returns a dict with execution results.
@@ -36,6 +30,8 @@ def fetch_data() -> Dict:
         # 1. Initialize Context
         config = load_config()
         ctx = AppContext(config)
+        
+        crawl_date = ctx.format_date()
         
         # Access nested storage config
         storage_config = config.get("STORAGE", {})
@@ -48,10 +44,36 @@ def fetch_data() -> Dict:
             enable_txt=formats_config.get("TXT", True),
             enable_html=formats_config.get("HTML", True),
             timezone=config.get("TIMEZONE", "Asia/Kolkata"),
-            force_new=True
+            force_new=False  # Don't force new, allow caching
         )
         
-        # Configure Proxy if enabled
+        # Check if data was fetched recently (within 1 hour) by checking crawl times
+        crawl_times = storage_manager.get_crawl_times(crawl_date)
+        if crawl_times:
+            latest_crawl = crawl_times[-1]  # Most recent crawl time
+            current_time = ctx.format_time()
+            
+            try:
+                # Parse times like "14-30" (HH-MM)
+                latest_hour, latest_minute = map(int, latest_crawl.split('-'))
+                current_hour, current_minute = map(int, current_time.split('-'))
+                
+                time_diff = (current_hour - latest_hour) * 60 + (current_minute - latest_minute)
+                
+                if time_diff < 60:  # Less than 1 hour ago
+                    logger.info(f"Data already fetched recently at {latest_crawl}, skipping fetch")
+                    return {
+                        "status": "skipped",
+                        "message": f"Data already up to date (last crawl: {latest_crawl})",
+                        "last_crawl": latest_crawl
+                    }
+            except Exception as e:
+                logger.warning(f"Time parsing failed: {e}, continuing with fetch")
+        
+        logger.info("No recent crawl found or time check failed, proceeding with RSS feed fetching...")
+        
+        # Only proceed with fetching if we don't have recent data
+        logger.info("Proceeding with RSS feed fetching...")
         crawler_config = config.get("CRAWLER", {}) # Note: loader.py merges crawler config into top level but let's check defaults
         # Actually loader.py updates config directly. Let's look at how loader.py structures it.
         # It updates config with _load_crawler_config.
@@ -158,31 +180,50 @@ def fetch_data() -> Dict:
                                 "summary_text": f"Found {len(reddit_opinions)} reactions on Reddit. Average sentiment: {overall}."
                             }, crawl_date)
                 
-                # 5. Generate Hourly Summary
-                logger.info("Generating hourly summary...")
-                summary = summary_gen.generate_hourly_summary(crawl_date, crawl_time)
+                # 5. Generate Summary (Hourly or Daily)
+                current_hour = int(crawl_time.split('-')[0])
+                if current_hour >= 23:  # End of day (11 PM or later)
+                    logger.info("Generating daily summary (end of day)...")
+                    summary = summary_gen.generate_daily_summary(crawl_date)
+                    report_type = "Daily Summary"
+                else:
+                    logger.info("Generating hourly summary...")
+                    summary = summary_gen.generate_hourly_summary(crawl_date, crawl_time)
+                    report_type = "Hourly Summary"
+                
                 if summary:
+                    # Save summary (both hourly and daily use the same table)
                     storage_manager.save_hourly_summary(summary, crawl_date)
                     logger.info(f"Summary generated: {len(summary.get('highlights', []))} highlights.")
                     
-                    # Format notification text
-                    notification_text = summary_gen.format_notification(summary)
+                    # Format notification text based on type
+                    if current_hour >= 23:
+                        notification_text = summary_gen.format_daily_notification(summary)
+                        report_type = "Daily Summary"
+                    else:
+                        notification_text = summary_gen.format_notification(summary)
+                        report_type = "Hourly Summary"
+                    
                     try:
                         print("\n" + notification_text + "\n")
                     except UnicodeEncodeError:
                         # Fallback for terminals that don't support emojis/special chars
                         print("\n" + notification_text.encode('ascii', 'ignore').decode('ascii') + "\n")
                     
-                    # Send Telegram notification if enabled
-                    if config.get("ENABLE_NOTIFICATION", True):
-                        logger.info("Sending Telegram notification...")
+                    # Send notification (only if requested)
+                    if send_notifications and config.get("ENABLE_NOTIFICATION", True):
+                        logger.info(f"Sending {report_type} notification...")
                         dispatcher = ctx.create_notification_dispatcher()
                         dispatcher.dispatch_all(
                             report_data={"full_text": notification_text},
-                            report_type="Hourly Summary",
+                            report_type=report_type,
                             mode="current"
                         )
                         logger.info("Notification dispatch process completed.")
+                    elif not send_notifications:
+                        logger.info("Skipping notifications (fetch-only mode)")
+                    else:
+                        logger.info("Notifications disabled in config")
             
             # Optional: Save TXT snapshot for debug/backup
             txt_file = storage_manager.save_txt_snapshot(news_data)
@@ -212,11 +253,31 @@ def fetch_data() -> Dict:
             "message": str(e)
         }
 
-if __name__ == "__main__":
-    result = fetch_data()
+def main():
+    """Main entry point with command line argument parsing"""
+    parser = argparse.ArgumentParser(description='Fetch news data and optionally send notifications')
+    parser.add_argument('--no-notify', action='store_true',
+                       help='Skip sending notifications (fetch-only mode)')
+    parser.add_argument('--notify-only', action='store_true',
+                       help='Only send notifications from existing data (no fetching)')
+
+    args = parser.parse_args()
+
+    if args.notify_only:
+        # Import and run the notification script
+        from send_notifications import send_notifications
+        result = send_notifications()
+    else:
+        # Normal fetch mode (with optional notification skipping)
+        send_notifications_flag = not args.no_notify
+        result = fetch_data(send_notifications=send_notifications_flag)
+
     # Print JSON result to stdout for parsing by external tools/caller
     # Use ensure_ascii=True to avoid UnicodeEncodeError in Windows terminals
     try:
         print(json.dumps(result, indent=2, ensure_ascii=True))
     except Exception:
         print(json.dumps({"status": "error", "message": "Failed to print results due to encoding error"}))
+
+if __name__ == "__main__":
+    main()

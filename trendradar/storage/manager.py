@@ -225,6 +225,14 @@ class StorageManager:
         """Check if it's the first crawl of the day"""
         return self.get_backend().is_first_crawl_today(date)
 
+    def get_crawl_times(self, date: Optional[str] = None) -> List[str]:
+        """Get list of crawl times"""
+        return self.get_backend().get_crawl_times(date)
+
+    def get_crawl_stats(self, date: Optional[str] = None) -> Dict:
+        """Get crawl stats for graph"""
+        return self.get_backend().get_crawl_stats(date)
+
     def cleanup(self) -> None:
         """Clean up resources"""
         if self._backend:

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendRadar Pro | India Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --accent: #f472b6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(244, 114, 182, 0.1) 0px, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+        }
+
+        header {
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        main {
+            padding: 2rem 5%;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 2rem;
+        }
+
+        .card {
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .news-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            animation: slideIn 0.4s ease forwards;
+            opacity: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-10px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .news-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .news-rank {
+            font-size: 1.5rem;
+            font-weight: 700;
+            opacity: 0.3;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+        }
+
+        .rank-1 {
+            color: #fbbf24;
+            opacity: 1;
+        }
+
+        .rank-2 {
+            color: #94a3b8;
+            opacity: 1;
+        }
+
+        .rank-3 {
+            color: #b45309;
+            opacity: 1;
+        }
+
+        .news-info {
+            flex: 1;
+        }
+
+        .news-title {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 1.05rem;
+            line-height: 1.4;
+        }
+
+        .news-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            align-items: center;
+        }
+
+        .tag {
+            padding: 2px 8px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .active-cat {
+            background: var(--primary);
+            border-color: var(--primary-light);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .right-col {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="glass">
+        <div class="logo">TrendRadar Pro</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div id="statusIndicator"
+                style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--success);">
+                <div
+                    style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success);">
+                </div>
+                Live System Stable
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="left-col">
+            <div class="card glass">
+                <div class="card-title">Trending Analytics</div>
+                <div style="height: 200px; width: 100%;">
+                    <canvas id="trendingChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-title">
+                    <span>Hot Topics Right Now</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="tag btn-action" onclick="saveAsImage()"
+                            style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; cursor: pointer;">Save
+                            Shot</button>
+                        <button class="btn" onclick="fetchNews()">Refresh Live</button>
+                    </div>
+                </div>
+
+                <!-- Category Selector -->
+                <div id="categoryTabs"
+                    style="display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;">
+                    <button class="tag active-cat" onclick="setCategory('All')" style="cursor: pointer;">All</button>
+                </div>
+
+                <div id="newsContainer" class="news-list">
+                    <!-- News items injected here -->
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading trends...</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="right-col">
+            <div class="card glass stats-grid">
+                <div class="stat-box" title="Calculated from unique Indian & Global RSS feeds">
+                    <div id="totalSources" class="stat-val">0</div>
+                    <div class="stat-label">Active Sources</div>
+                </div>
+                <div class="stat-box">
+                    <div id="totalNews" class="stat-val">0</div>
+                    <div class="stat-label">News Tracked</div>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-title">Dynamic Keyword Pulse</div>
+                <div id="keywordCloud" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <span class="tag">Analyzing...</span>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-title">System Insights</div>
+                <div id="systemInsights" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted);">
+                    <div style="margin-bottom: 10px;">
+                        The <span style="color: var(--accent);">Indian Trending Algorithm</span> is actively monitoring
+                        <span id="sourceCount" style="color: var(--primary-light);">...</span> news outlets.
+                    </div>
+                    Next scheduled pulse in: <span id="countdown"
+                        style="color: var(--success); font-weight: 700;">30:00</span>
+                </div>
+                <div id="trendingPulse" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="card glass" style="max-height: 250px; overflow-y: auto;">
+                <div class="card-title">Monitored Pulse Sources</div>
+                <div id="sourceList"
+                    style="font-size: 0.75rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <!-- Sources listed here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentCategory = 'All';
+        let refreshTimer = 1800; // 30 minutes
+
+        function startCountdown() {
+            setInterval(() => {
+                refreshTimer--;
+                if (refreshTimer <= 0) {
+                    refreshTimer = 1800;
+                    fetchNews();
+                    fetchTrending();
+                    fetchStats();
+                }
+                const mins = Math.floor(refreshTimer / 60);
+                const secs = refreshTimer % 60;
+                document.getElementById('countdown').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        async function fetchNews() {
+            const container = document.getElementById('newsContainer');
+            const sourcesEl = document.getElementById('totalSources');
+            const newsEl = document.getElementById('totalNews');
+            const sourceList = document.getElementById('sourceList');
+
+            try {
+                const catParam = currentCategory === 'All' ? '' : `&category=${encodeURIComponent(currentCategory)}`;
+                const response = await fetch(`/news?limit=50${catParam}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Update stats
+                    sourcesEl.innerText = data.total_sources || '0';
+                    newsEl.innerText = data.total_tracks > 1000 ? (data.total_tracks / 1000).toFixed(1) + 'k' : data.total_tracks;
+                    document.getElementById('sourceCount').innerText = data.total_sources;
+
+                    // Update Categories if not already
+                    updateCategoryTabs(data.categories);
+
+                    // Update Source List
+                    if (sourceList.children.length === 0) {
+                        const uniqueSources = [...new Set(data.news.map(n => n.source_name))];
+                        sourceList.innerHTML = uniqueSources.map(s => `<div>• ${s}</div>`).join('');
+                    }
+
+                    container.innerHTML = '';
+
+                    if (!data.news || data.news.length === 0) {
+                        container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No news found for ${currentCategory}.</div>`;
+                        return;
+                    }
+
+                    data.news.forEach((item, index) => {
+                        const rank = index + 1;
+                        const el = document.createElement('div');
+                        el.className = 'news-item';
+                        el.style.animationDelay = `${index * 0.02}s`;
+                        el.onclick = () => window.open(item.url, '_blank');
+
+                        const catTags = (item.categories || []).map(c => `<span class="tag" style="font-size:0.6rem; opacity:0.8">${c}</span>`).join(' ');
+
+                        el.innerHTML = `
+                            <div class="news-rank rank-${rank <= 3 ? rank : 'other'}">${rank}</div>
+                            <div class="news-info">
+                                <div class="news-title">${item.title}</div>
+                                <div class="news-meta">
+                                    <span style="color: var(--primary-light); font-weight: 600;">${item.source_name}</span>
+                                    <span>${item.crawl_time}</span>
+                                    ${catTags}
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(el);
+                    });
+
+                    updateKeywords(data.news);
+                }
+            } catch (e) {
+                console.error("Fetch error:", e);
+                container.innerHTML = '<div style="color:var(--danger); text-align: center; padding: 2rem;">Offline. Connect to TrendRadar API.</div>';
+            }
+        }
+
+        function updateCategoryTabs(categories) {
+            const tabs = document.getElementById('categoryTabs');
+            if (tabs.children.length > 1) return; // Already loaded
+
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'tag';
+                btn.style.cursor = 'pointer';
+                btn.innerText = cat;
+                btn.onclick = () => setCategory(cat, btn);
+                tabs.appendChild(btn);
+            });
+        }
+
+        function setCategory(cat, btn) {
+            currentCategory = cat;
+            // UI Reset
+            document.querySelectorAll('#categoryTabs button').forEach(b => {
+                b.className = 'tag';
+            });
+            if (btn) {
+                btn.className = 'tag active-cat';
+            } else {
+                document.getElementById('categoryTabs').children[0].className = 'tag active-cat';
+            }
+            fetchNews();
+        }
+
+        function updateKeywords(news) {
+            const cloud = document.getElementById('keywordCloud');
+            const words = {};
+            news.forEach(n => {
+                const items = n.title.split(/\s+/);
+                items.forEach(w => {
+                    const clean = w.replace(/[^\w]/gi, '');
+                    if (clean.length > 4) words[clean] = (words[clean] || 0) + 1;
+                });
+            });
+            const top = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            cloud.innerHTML = top.map(([w, c]) => `<span class="tag" style="background:rgba(79, 70, 229, ${0.1 + (c / 10)})">${w}</span>`).join('');
+        }
+
+        async function fetchTrending() {
+            const insightBox = document.getElementById('trendingPulse');
+            try {
+                const response = await fetch('/trending');
+                const data = await response.json();
+
+                if (data.status === 'success' && data.trending) {
+                    const trends = data.trending.global_trends || [];
+                    if (trends.length > 0) {
+                        let html = `<div style="margin-bottom: 12px; font-weight: 600; color: var(--accent);">🔥 AI Pulse Update:</div>`;
+                        trends.slice(0, 3).forEach(t => {
+                            html += `<div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <div style="color: white; font-size: 0.9rem;">${t.title}</div>
+                                        <div style="font-size: 0.7rem; color: var(--text-muted);">Trending on: ${t.platforms.join(', ')}</div>
+                                     </div>`;
+                        });
+                        insightBox.innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.log("Trend fallback.");
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/stats');
+                const data = await response.json();
+                if (data.status === 'success' && data.labels.length > 0) {
+                    chart.data.labels = data.labels;
+                    chart.data.datasets[0].data = data.data;
+                    chart.update('none');
+                }
+            } catch (e) { }
+        }
+
+        // Initialize Chart
+        const ctx = document.getElementById('trendingChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'News Volume',
+                    data: [],
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                    y: { grid: { borderDash: [5, 5], color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // Start everything
+        fetchNews();
+        fetchTrending();
+        fetchStats();
+        startCountdown();
+
+        function saveAsImage() {
+            const btn = document.querySelector('.btn-action');
+            btn.innerText = 'Capturing...';
+            html2canvas(document.body, {
+                backgroundColor: '#0f172a',
+                scale: 2
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `TrendRadar-Pro-Snapshot-${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                btn.innerText = 'Save Shot';
+            });
+        }
+    </script>
+</body>
+
+</html>

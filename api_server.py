@@ -140,18 +140,37 @@ def api_status():
         "features": ["auto-categorization", "hourly-summaries", "rss-fetching"]
     }), 200
 
+@app.route('/stats', methods=['GET'])
+def api_stats():
+    """
+    Get crawl statistics for the dashboard chart.
+    """
+    try:
+        sm = get_sm()
+        stats = sm.get_crawl_stats()
+        return jsonify({
+            "status": "success",
+            "labels": stats.get("labels", []),
+            "data": stats.get("data", [])
+        }), 200
+    except Exception as e:
+        logger.error(f"Failed to retrieve stats: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/', methods=['GET'])
 def index():
-    return jsonify({
-        "status": "online",
-        "endpoints": [
-            "GET /fetch",
-            "GET /news?category=AI&limit=20",
-            "GET /trending",
-            "GET /status",
-            "GET /report"
-        ]
-    })
+    """Serve the Premium Dashboard."""
+    try:
+        if os.path.exists('dashboard.html'):
+            with open('dashboard.html', 'r', encoding='utf-8') as f:
+                return f.read(), 200, {'Content-Type': 'text/html'}
+        return jsonify({
+            "status": "online",
+            "message": "Dashboard file not found. Use API endpoints.",
+            "endpoints": ["/stats", "/news", "/trending", "/status"]
+        })
+    except Exception as e:
+        return str(e), 500
 
 if __name__ == '__main__':
     print("Starting TrendRadar API Server...")

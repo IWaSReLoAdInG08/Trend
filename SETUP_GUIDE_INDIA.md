@@ -108,16 +108,65 @@ In `config.yaml`, you can change `report_mode`:
 - **`incremental`**: Only shows NEW news (no repeats)
 - **`daily`**: Daily summary of all matching news
 
-## Scheduling (Optional)
+## Usage
 
-### Windows Task Scheduler
-1. Open Task Scheduler
-2. Create Basic Task
-3. Trigger: Daily at your preferred time
-4. Action: Start a program
-   - Program: `python`
-   - Arguments: `-m trendradar`
-   - Start in: `c:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar`
+### Manual Commands
+
+#### Fetch News Data Only (No Notifications)
+```powershell
+python fetch_news.py --no-notify
+# or
+python manage.py fetch --no-notify
+```
+
+#### Send Notifications from Existing Data
+```powershell
+python send_notifications.py
+# or
+python manage.py notify
+# or
+python fetch_news.py --notify-only
+```
+
+#### Full Cycle (Fetch + Notify)
+```powershell
+python fetch_news.py
+# or
+python manage.py run
+```
+
+### Automated Scheduling
+
+#### Option 1: Separate Cron Jobs (Recommended)
+- **Hourly Fetch**: Run every hour to collect news data
+- **Daily Notify**: Run once daily (e.g., 11 PM) to send summary
+
+**Windows Task Scheduler Setup:**
+
+1. **Hourly Data Collection Task:**
+   - Task Name: `TrendRadar Fetch Hourly`
+   - Trigger: Every 1 hour
+   - Action: Start a program
+     - Program: `C:\Python310\python.exe`
+     - Arguments: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar\fetch_news.py --no-notify`
+     - Start in: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar`
+
+2. **Daily Notification Task:**
+   - Task Name: `TrendRadar Notify Daily`
+   - Trigger: Daily at 23:00 (11 PM)
+   - Action: Start a program
+     - Program: `C:\Python310\python.exe`
+     - Arguments: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar\send_notifications.py`
+     - Start in: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar`
+
+#### Option 2: Single Combined Task (Original)
+- **Combined Task**: Fetches and sends notifications every hour
+- Task Name: `TrendRadar Hourly`
+- Trigger: Every 1 hour
+- Action: Start a program
+  - Program: `C:\Python310\python.exe`
+  - Arguments: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar\fetch_news.py`
+  - Start in: `C:\Users\SK VERMA\Desktop\TrendRadar\TrendRadar`
 
 ## Troubleshooting
 
