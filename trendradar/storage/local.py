@@ -739,17 +739,31 @@ class LocalStorageBackend(StorageBackend):
             conn = self._get_connection(date)
             cursor = conn.cursor()
 
-            cursor.execute("""
-                SELECT crawl_time FROM crawl_records
-                ORDER BY crawl_time
-            """)
-
-            rows = cursor.fetchall()
-            return [row[0] for row in rows]
+            cursor.execute("SELECT crawl_time FROM crawl_records ORDER BY crawl_time")
+            return [row[0] for row in cursor.fetchall()]
 
         except Exception as e:
             print(f"[Local Storage] Failed to get crawl times: {e}")
             return []
+
+    def get_crawl_stats(self, date: Optional[str] = None) -> Dict:
+        """
+        Get crawl statistics (time and item count) for plotting
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+            
+            # Use crawl_records table
+            cursor.execute("SELECT crawl_time, total_items FROM crawl_records ORDER BY crawl_time")
+            rows = cursor.fetchall()
+            return {
+                "labels": [row[0].split()[-1][:5] for row in rows], # Get HH:MM
+                "data": [row[1] for row in rows]
+            }
+        except Exception as e:
+            print(f"[Local Storage] Failed to get crawl stats: {e}")
+            return {"labels": [], "data": []}
 
     def cleanup(self) -> None:
         """Clean up resources (close database connection)"""
@@ -980,20 +994,26 @@ class LocalStorageBackend(StorageBackend):
             conn = self._get_connection(date)
             cursor = conn.cursor()
             
+            # Ensure global_trends exists in schema or handle it
             cursor.execute("""
                 INSERT INTO hourly_summaries
-                (time_window, date, highlights, top_categories)
-                VALUES (?, ?, ?, ?)
+                (time_window, date, highlights, top_categories, global_trends)
+                VALUES (?, ?, ?, ?, ?)
             """, (
                 summary_data.get("time_window", ""),
                 summary_data.get("date", ""),
                 json.dumps(summary_data.get("highlights", [])),
-                json.dumps(summary_data.get("top_categories", []))
+                json.dumps(summary_data.get("top_categories", [])),
+                json.dumps(summary_data.get("global_trends", []))
             ))
             
             conn.commit()
             return True
         except Exception as e:
+            # Fallback if column missing (schema fix)
+            if "has no column named global_trends" in str(e):
+                cursor.execute("ALTER TABLE hourly_summaries ADD COLUMN global_trends TEXT")
+                return self.save_hourly_summary(summary_data, date)
             print(f"[Local Storage] Failed to save hourly summary: {e}")
             return False
 
@@ -1006,7 +1026,7 @@ class LocalStorageBackend(StorageBackend):
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT time_window, date, highlights, top_categories
+                SELECT time_window, date, highlights, top_categories, global_trends
                 FROM hourly_summaries
                 ORDER BY created_at DESC
                 LIMIT 1
@@ -1015,13 +1035,19 @@ class LocalStorageBackend(StorageBackend):
             row = cursor.fetchone()
             if not row:
                 return None
-                
-            return {
+            
+            res = {
                 "time_window": row[0],
                 "date": row[1],
                 "highlights": json.loads(row[2]),
                 "top_categories": json.loads(row[3])
             }
+            if len(row) > 4:
+                res["global_trends"] = json.loads(row[4])
+            return res
+        except Exception as e:
+            print(f"[Local Storage] Failed to get summary: {e}")
+            return None
         except Exception as e:
             print(f"[Local Storage] Failed to get latest summary: {e}")
             return None

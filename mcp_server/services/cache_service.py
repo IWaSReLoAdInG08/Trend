@@ -1,7 +1,7 @@
 """
-缓存服务
+Cache Service
 
-实现TTL缓存机制，提升数据访问性能。
+Implements TTL caching mechanism to improve data access performance in English.
 """
 
 import time
@@ -10,43 +10,43 @@ from threading import Lock
 
 
 class CacheService:
-    """缓存服务类"""
+    """Cache Service Class"""
 
     def __init__(self):
-        """初始化缓存服务"""
+        """Initialize cache service"""
         self._cache = {}
         self._timestamps = {}
         self._lock = Lock()
 
     def get(self, key: str, ttl: int = 900) -> Optional[Any]:
         """
-        获取缓存数据
+        Get cached data
 
         Args:
-            key: 缓存键
-            ttl: 存活时间（秒），默认15分钟
+            key: Cache key
+            ttl: Time To Live in seconds, default 15 minutes
 
         Returns:
-            缓存的值，如果不存在或已过期则返回None
+            Cached value, or None if not found or expired
         """
         with self._lock:
             if key in self._cache:
-                # 检查是否过期
+                # Check expiry
                 if time.time() - self._timestamps[key] < ttl:
                     return self._cache[key]
                 else:
-                    # 已过期，删除缓存
+                    # Expired, delete from cache
                     del self._cache[key]
                     del self._timestamps[key]
         return None
 
     def set(self, key: str, value: Any) -> None:
         """
-        设置缓存数据
+        Set cached data
 
         Args:
-            key: 缓存键
-            value: 缓存值
+            key: Cache key
+            value: Cached value
         """
         with self._lock:
             self._cache[key] = value
@@ -54,13 +54,7 @@ class CacheService:
 
     def delete(self, key: str) -> bool:
         """
-        删除缓存
-
-        Args:
-            key: 缓存键
-
-        Returns:
-            是否成功删除
+        Delete from cache
         """
         with self._lock:
             if key in self._cache:
@@ -70,20 +64,14 @@ class CacheService:
         return False
 
     def clear(self) -> None:
-        """清空所有缓存"""
+        """Clear all cache"""
         with self._lock:
             self._cache.clear()
             self._timestamps.clear()
 
     def cleanup_expired(self, ttl: int = 900) -> int:
         """
-        清理过期缓存
-
-        Args:
-            ttl: 存活时间（秒）
-
-        Returns:
-            清理的条目数量
+        Cleanup expired cache
         """
         with self._lock:
             current_time = time.time()
@@ -100,10 +88,7 @@ class CacheService:
 
     def get_stats(self) -> dict:
         """
-        获取缓存统计信息
-
-        Returns:
-            统计信息字典
+        Get cache statistics
         """
         with self._lock:
             return {
@@ -119,16 +104,13 @@ class CacheService:
             }
 
 
-# 全局缓存实例
+# Global cache instance
 _global_cache = None
 
 
 def get_cache() -> CacheService:
     """
-    获取全局缓存实例
-
-    Returns:
-        全局缓存服务实例
+    Get global cache instance
     """
     global _global_cache
     if _global_cache is None:

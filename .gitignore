@@ -1,13 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
+# Config files with secrets
+config/config.yaml
 eggs/
 .eggs/
 lib/
@@ -33,9 +25,21 @@ venv.bak/
 
 # Project specific
 output/
-config/config.yaml
 *.db
 *.log
+*.txt
+__pycache__/
+*.pyc
+*.pyo
+stderr*.txt
+stdout*.txt
+server_error.log
+non_ascii_audit.log
+compile_errors.log
+results.txt
+libpath.txt
+version
+_image/
 
 # IDEs
 .vscode/

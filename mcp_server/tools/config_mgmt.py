@@ -1,49 +1,65 @@
 """
-配置管理工具
+Configuration Management Tools
 
-实现配置查询和管理功能。
+Implements tools to view and manage current configuration.
 """
 
+from pathlib import Path
 from typing import Dict, Optional
 
-from ..services.data_service import DataService
+import yaml
+
 from ..utils.validators import validate_config_section
 from ..utils.errors import MCPError
 
 
 class ConfigManagementTools:
-    """配置管理工具类"""
+    """Configuration Management Tools Class"""
 
     def __init__(self, project_root: str = None):
         """
-        初始化配置管理工具
+        Initialize configuration management tools
 
         Args:
-            project_root: 项目根目录
+            project_root: Project root directory
         """
-        self.data_service = DataService(project_root)
+        if project_root:
+            self.project_root = Path(project_root)
+        else:
+            # Get project root
+            current_file = Path(__file__)
+            self.project_root = current_file.parent.parent.parent
 
     def get_current_config(self, section: Optional[str] = None) -> Dict:
         """
-        获取当前系统配置
+        Get current server configuration
 
         Args:
-            section: 配置节 - all/crawler/push/keywords/weights，默认all
+            section: Specific configuration section, e.g., "crawler", "storage", "email", "app"
 
         Returns:
-            配置字典
-
-        Example:
-            >>> tools = ConfigManagementTools()
-            >>> result = tools.get_current_config(section="crawler")
-            >>> print(result['crawler']['platforms'])
+            Configuration dictionary
         """
         try:
-            # 参数验证
+            # Parameter validation
             section = validate_config_section(section)
 
-            # 获取配置
-            config = self.data_service.get_current_config(section=section)
+            # Load config file
+            config_path = self.project_root / "config" / "config.yaml"
+            if not config_path.exists():
+                return {
+                    "success": False,
+                    "error": {
+                        "code": "CONFIG_NOT_FOUND",
+                        "message": f"Configuration file not found: {config_path}"
+                    }
+                }
+
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+
+            if section:
+                config = {section: config.get(section, {})}
 
             return {
                 "config": config,

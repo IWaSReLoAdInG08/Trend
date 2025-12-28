@@ -1,0 +1,16 @@
+{
+    "mcpServers": {
+        "trendradar": {
+            "command": "python",
+            "args": [
+                "c:/Users/SK VERMA/Desktop/TrendRadar/TrendRadar/manage.py",
+                "mcp",
+                "--mode",
+                "stdio"
+            ],
+            "env": {
+                "PYTHONPATH": "c:/Users/SK VERMA/Desktop/TrendRadar/TrendRadar"
+            }
+        }
+    }
+}

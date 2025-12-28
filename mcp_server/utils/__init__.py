@@ -1,5 +1,5 @@
 """
-工具类模块
+Utility Module
 
-提供参数验证、错误处理等辅助功能。
+Provides auxiliary functions such as parameter validation and error handling.
 """
